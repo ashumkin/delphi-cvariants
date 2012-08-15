@@ -5,3 +5,6 @@ syntax: glob
 *.res
 *.dsk
 *.dsm
+*.dcu
+*.exe
+dunit.ini

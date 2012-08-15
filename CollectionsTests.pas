@@ -36,7 +36,8 @@ interface
 uses
    SysUtils,
    TestFramework,
-   Collections;
+   Collections,
+   CVariants;
 
 type
   TListTests = class(TTestCase)
