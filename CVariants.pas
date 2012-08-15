@@ -23,6 +23,8 @@ type
     class function MakeI(const Int: IUnknown): CVariant; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
     function GetAsPVariant: PVariant; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
     function GetHash: Integer;
+    function GetItems(const Ind: Variant): CVariant;
+    procedure SetItems(const Ind: Variant; const NewObj: CVariant);
   public
     destructor Destroy; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
     constructor CreateDisowned(Obj: TObject); {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
@@ -42,7 +44,13 @@ type
     class function MakeV(const Vrn: Variant): CVariant; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
     function ToString: string;
     function ToInt: Integer;
+    function Get(const Bounds: array of const): CVariant; // I failed to make a property out of them
+    procedure Put(const Bounds: array of const; const NewObj: CVariant);
+    procedure Remove(const Bounds: array of const);
+    procedure Insert(const Bounds: array of const; const NewObj: CVariant);
+    procedure Append(const Bounds: array of const; const NewObj: CVariant);
     property AsVariant: Variant read FObj write FObj;
+    property Items[const Ind: Variant]: CVariant read GetItems write SetItems;
     property AsPVariant: PVariant read GetAsPVariant;
     property Hash: Integer read GetHash;
   end;
@@ -229,6 +237,273 @@ end;
 function CVariant.ToInt: Integer;
 begin
   Result := intOf(VariantToRef(FObj));
+end;
+
+function CVariant.Get(const Bounds: array of const): CVariant;
+var
+  i: Integer;
+  LIU: IUnknown;
+  LIL: IList;
+  LIM: IMap;
+begin
+  case TVarData(FObj).VType of
+  varUnknown: LIU := IUnknown(TVarData(FObj).VUnknown);
+  varDispatch: LIU := IDispatch(TVarData(FObj).VDispatch);
+  else
+    raise EVariantNotAnArrayError.Create(VarToStr(FObj));
+  end;
+
+  for i := Low(Bounds) to High(Bounds) do
+  begin
+    if Supports(LIU, IObject, LIL) then
+    begin
+      if Bounds[i].VType <> vtInteger then
+        raise EVariantInvalidArgError.Create(stringOf(LIL));
+      LIU := LIL.item[Bounds[i].VInteger];
+    end else if Supports(LIU, IMap, LIM) then
+    begin
+      LIU := LIM.get(ConstToRef(Bounds[i]));
+    end else
+    begin
+      raise EInvalidCast.create(VarToStr(FObj));
+    end;
+    LIL := nil; LIM := nil;
+  end;
+
+  Result := MakeI(LIU);
+end;
+
+procedure CVariant.Put(const Bounds: array of const; const NewObj: CVariant);
+var
+  i: Integer;
+  LIU: IUnknown;
+  LIL: IList;
+  LIM: IMap;
+begin
+  case TVarData(FObj).VType of
+  varUnknown: LIU := IUnknown(TVarData(FObj).VUnknown);
+  varDispatch: LIU := IDispatch(TVarData(FObj).VDispatch);
+  else
+    raise EVariantNotAnArrayError.Create(VarToStr(FObj));
+  end;
+
+  for i := Low(Bounds) to High(Bounds) - 1 do
+  begin
+    if Supports(LIU, IObject, LIL) then
+    begin
+      if Bounds[i].VType <> vtInteger then
+        raise EVariantInvalidArgError.Create(stringOf(LIL));
+      LIU := LIL.item[Bounds[i].VInteger];
+    end else if Supports(LIU, IMap, LIM) then
+    begin
+      LIU := LIM.get(ConstToRef(Bounds[i]));
+    end else
+    begin
+      raise EInvalidCast.create(VarToStr(FObj));
+    end;
+    LIL := nil; LIM := nil;
+  end;
+
+  if Supports(LIU, IObject, LIL) then
+  begin
+    if Bounds[High(Bounds)].VType <> vtInteger then
+      raise EVariantInvalidArgError.Create(stringOf(LIL));
+    LIL.item[Bounds[High(Bounds)].VInteger] := VariantToRef(NewObj.FObj);
+  end else if Supports(LIU, IMap, LIM) then
+  begin
+    LIM.put(ConstToRef(Bounds[High(Bounds)]), VariantToRef(NewObj.FObj));
+  end else
+  begin
+    raise EInvalidCast.create(VarToStr(FObj));
+  end;
+  LIL := nil; LIM := nil;
+end;
+
+procedure CVariant.Remove(const Bounds: array of const);
+var
+  i: Integer;
+  LIU: IUnknown;
+  LIL: IList;
+  LIM: IMap;
+begin
+  case TVarData(FObj).VType of
+  varUnknown: LIU := IUnknown(TVarData(FObj).VUnknown);
+  varDispatch: LIU := IDispatch(TVarData(FObj).VDispatch);
+  else
+    raise EVariantNotAnArrayError.Create(VarToStr(FObj));
+  end;
+
+  for i := Low(Bounds) to High(Bounds) - 1 do
+  begin
+    if Supports(LIU, IObject, LIL) then
+    begin
+      if Bounds[i].VType <> vtInteger then
+        raise EVariantInvalidArgError.Create(stringOf(LIL));
+      LIU := LIL.item[Bounds[i].VInteger];
+    end else if Supports(LIU, IMap, LIM) then
+    begin
+      LIU := LIM.get(ConstToRef(Bounds[i]));
+    end else
+    begin
+      raise EInvalidCast.create(VarToStr(FObj));
+    end;
+    LIL := nil; LIM := nil;
+  end;
+
+  if Supports(LIU, IObject, LIL) then
+  begin
+    if Bounds[High(Bounds)].VType <> vtInteger then
+      raise EVariantInvalidArgError.Create(stringOf(LIL));
+    LIL.remove(Bounds[High(Bounds)].VInteger);
+  end else if Supports(LIU, IMap, LIM) then
+  begin
+    LIM.remove(ConstToRef(Bounds[High(Bounds)]));
+  end else
+  begin
+    raise EInvalidCast.create(VarToStr(FObj));
+  end;
+  LIL := nil; LIM := nil;
+end;
+
+procedure CVariant.Insert(const Bounds: array of const; const NewObj: CVariant);
+var
+  i: Integer;
+  LIU: IUnknown;
+  LIL: IList;
+  LIM: IMap;
+begin
+  case TVarData(FObj).VType of
+  varUnknown: LIU := IUnknown(TVarData(FObj).VUnknown);
+  varDispatch: LIU := IDispatch(TVarData(FObj).VDispatch);
+  else
+    raise EVariantNotAnArrayError.Create(VarToStr(FObj));
+  end;
+
+  for i := Low(Bounds) to High(Bounds) - 1 do
+  begin
+    if Supports(LIU, IObject, LIL) then
+    begin
+      if Bounds[i].VType <> vtInteger then
+        raise EVariantInvalidArgError.Create(stringOf(LIL));
+      LIU := LIL.item[Bounds[i].VInteger];
+    end else if Supports(LIU, IMap, LIM) then
+    begin
+      LIU := LIM.get(ConstToRef(Bounds[i]));
+    end else
+    begin
+      raise EInvalidCast.create(VarToStr(FObj));
+    end;
+    LIL := nil; LIM := nil;
+  end;
+
+  if Supports(LIU, IObject, LIL) then
+  begin
+    if Bounds[High(Bounds)].VType <> vtInteger then
+      raise EVariantInvalidArgError.Create(stringOf(LIL));
+    LIL.insert(Bounds[High(Bounds)].VInteger, VariantToRef(NewObj.FObj));
+  end else if Supports(LIU, IMap, LIM) then
+  begin
+    LIM.put(ConstToRef(Bounds[High(Bounds)]), VariantToRef(NewObj.FObj));
+  end else
+  begin
+    raise EInvalidCast.create(VarToStr(FObj));
+  end;
+  LIL := nil; LIM := nil;
+end;
+
+procedure CVariant.Append(const Bounds: array of const; const NewObj: CVariant);
+var
+  i: Integer;
+  LIU: IUnknown;
+  LIL: IList;
+  LIM: IMap;
+begin
+  case TVarData(FObj).VType of
+  varUnknown: LIU := IUnknown(TVarData(FObj).VUnknown);
+  varDispatch: LIU := IDispatch(TVarData(FObj).VDispatch);
+  else
+    raise EVariantNotAnArrayError.Create(VarToStr(FObj));
+  end;
+
+  for i := Low(Bounds) to High(Bounds) do
+  begin
+    if Supports(LIU, IObject, LIL) then
+    begin
+      if Bounds[i].VType <> vtInteger then
+        raise EVariantInvalidArgError.Create(stringOf(LIL));
+      LIU := LIL.item[Bounds[i].VInteger];
+    end else if Supports(LIU, IMap, LIM) then
+    begin
+      LIU := LIM.get(ConstToRef(Bounds[i]));
+    end else
+    begin
+      raise EInvalidCast.create(VarToStr(FObj));
+    end;
+    LIL := nil; LIM := nil;
+  end;
+
+  if Supports(LIU, IObject, LIL) then
+  begin
+    LIL.add(VariantToRef(NewObj.FObj));
+  end else
+  begin
+    raise EInvalidCast.create(VarToStr(FObj));
+  end;
+  LIL := nil; LIM := nil;
+end;
+
+function CVariant.GetItems(const Ind: Variant): CVariant;
+var
+  LIU: IUnknown;
+  LIL: IList;
+  LIM: IMap;
+begin
+  case TVarData(FObj).VType of
+  varUnknown: LIU := IUnknown(TVarData(FObj).VUnknown);
+  varDispatch: LIU := IDispatch(TVarData(FObj).VDispatch);
+  else
+    raise EVariantNotAnArrayError.Create(VarToStr(FObj));
+  end;
+
+  if Supports(LIU, IObject, LIL) then
+  begin
+    LIU := LIL.item[Ind];
+  end else if Supports(LIU, IMap, LIM) then
+  begin
+    LIU := LIM.get(VariantToRef(Ind));
+  end else
+  begin
+    raise EInvalidCast.create(VarToStr(FObj));
+  end;
+  LIL := nil; LIM := nil;
+
+  Result := MakeI(LIU);
+end;
+
+procedure CVariant.SetItems(const Ind: Variant; const NewObj: CVariant);
+var
+  LIU: IUnknown;
+  LIL: IList;
+  LIM: IMap;
+begin
+  case TVarData(FObj).VType of
+  varUnknown: LIU := IUnknown(TVarData(FObj).VUnknown);
+  varDispatch: LIU := IDispatch(TVarData(FObj).VDispatch);
+  else
+    raise EVariantNotAnArrayError.Create(VarToStr(FObj));
+  end;
+
+  if Supports(LIU, IObject, LIL) then
+  begin
+    LIL.item[Ind] := VariantToRef(NewObj.FObj);
+  end else if Supports(LIU, IMap, LIM) then
+  begin
+    LIM.put(VariantToRef(Ind), VariantToRef(NewObj.FObj));
+  end else
+  begin
+    raise EInvalidCast.create(VarToStr(FObj));
+  end;
+  LIL := nil; LIM := nil;
 end;
 
 end.
