@@ -17,8 +17,10 @@ type
     FObj: Variant;
 
 
+    constructor CreateI(const Int: IUnknown);
     class function VariantToRef(const Obj: Variant): IUnknown;
     class function ConstToRef(const Obj: TVarRec): IUnknown;
+    class function MakeI(const Int: IUnknown): CVariant; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
     function GetAsPVariant: PVariant; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
     function GetHash: Integer;
   public
@@ -48,7 +50,7 @@ type
 implementation
 
 uses
-  Collections, Variants;
+  Collections, SysUtils, Variants;
 
 class function CVariant.VariantToRef(const Obj: Variant): IUnknown;
 begin
@@ -102,6 +104,31 @@ begin
   else
     // TODO: Delphi XE2 types
   end;
+end;
+
+constructor CVariant.CreateI(const Int: IUnknown);
+var
+  IntObj: IObject;
+begin
+  if Supports(Int, IObject, IntObj) then
+  begin
+    case IntObj.delphiType of
+    vtInteger: FObj := (IntObj as IInteger).intValue;
+    vtExtended: FObj := (IntObj as IDouble).doubleValue;
+    vtBoolean: FObj := (IntObj as IBoolean).boolValue;
+    vtWideString: FObj := (IntObj as IString).toString;
+    else
+      FObj := Int;
+    end;
+  end else
+  begin
+    FObj := Int;
+  end;
+end;
+
+class function CVariant.MakeI(const Int: IUnknown): CVariant;
+begin
+  Result.CreateI(Int);
 end;
 
 destructor CVariant.Destroy;

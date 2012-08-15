@@ -64,6 +64,7 @@ type
      function hash :Longint;
      function toString :string;
      function instanceOf(const iid :TGUID) :boolean;
+     function delphiType: Byte; // vt* constants
   end;
 
   IDelphiObject = interface(IObject)
@@ -324,6 +325,7 @@ type
      function toString :string;             virtual;
      function clone    :IUnknown;           virtual;
      function instanceOf(const iid :TGUID) :boolean;   virtual;
+     function delphiType: Byte;             virtual; // vt* constants
   end;
 
   TReference = class(TAbstractObject, IVariant, IReference, IComparable)
@@ -346,6 +348,7 @@ type
   TOwnerReference = class(TReference)
   public
      destructor Destroy; override;
+     function delphiType: Byte;             override;
   end;
 
   TStrReference = class(TAbstractObject, IVariant, IComparable, IString)
@@ -358,6 +361,7 @@ type
     function hash :longint;                       override;
     function toString :string;                    override;
     function compareTo(other :IUnknown) :Integer; virtual;
+    function delphiType: Byte;                    override;
 
     function intValue    :integer;
     function longValue   :longint;
@@ -374,6 +378,7 @@ type
     function hash :longint;               override;
     function toString :string;            override;
     function compareTo(other :IUnknown) :Integer; virtual;
+    function delphiType: Byte;             override;
 
     function intValue    :integer;
     function longValue   :longint;
@@ -390,6 +395,7 @@ type
     function hash :longint;                override;
     function toString :string;             override;
     function compareTo(other :IUnknown) :Integer; virtual;
+    function delphiType: Byte;             override;
 
     function intValue    :integer;
     function longValue   :longint;
@@ -406,6 +412,7 @@ type
     function hash :longint;               override;
     function toString :string;            override;
     function compareTo(other :IUnknown) :Integer; virtual;
+    function delphiType: Byte;             override;
 
     function intValue    :integer;
     function longValue   :longint;
@@ -422,6 +429,7 @@ type
     function hash :longint;               override;
     function toString :string;            override;
     function compareTo(other :IUnknown) :Integer; virtual;
+    function delphiType: Byte;             override;
 
     function intValue    :integer;
     function longValue   :longint;
@@ -1201,6 +1209,11 @@ begin
   inherited Destroy
 end;
 
+function TOwnerReference.delphiType: Byte;
+begin
+  Result := vtObject;
+end;
+
 { TAbstractObject }
 
 function TAbstractObject.equals(o :IUnknown): boolean;
@@ -1236,6 +1249,11 @@ end;
 function TAbstractObject.instanceOf(const iid :TGUID) :boolean;
 begin
   result := GetInterfaceEntry(iid) <> nil;
+end;
+
+function TAbstractObject.delphiType: Byte;
+begin
+  Result := vtInterface;
 end;
 
 { TStrReference }
@@ -1310,6 +1328,11 @@ begin
    result := _str
 end;
 
+function TStrReference.delphiType: Byte;
+begin
+  Result := vtWideString;
+end;
+
 { TIntReference }
 
 constructor TIntReference.create(const int: integer);
@@ -1368,6 +1391,11 @@ end;
 function TIntReference.boolValue: boolean;
 begin
   result := _int <> 0
+end;
+
+function TIntReference.delphiType: Byte;
+begin
+  Result := vtInteger;
 end;
 
 { TDoubleReference }
@@ -1444,6 +1472,11 @@ begin
   result := _dbl <> 0.0
 end;
 
+function TDoubleReference.delphiType: Byte;
+begin
+  Result := vtExtended;
+end;
+
 { TLongReference }
 
 function TLongReference.longValue: longint;
@@ -1518,6 +1551,11 @@ begin
    result := _long <> 0
 end;
 
+function TLongReference.delphiType: Byte;
+begin
+  Result := vtInteger;
+end;
+
 { TBoolReference }
 
 function TBoolReference.boolValue: boolean;
@@ -1585,6 +1623,11 @@ begin
      result := 'true'
   else
      result := '';
+end;
+
+function TBoolReference.delphiType: Byte;
+begin
+  Result := vtBoolean;
 end;
 
 { TAbstractCollection }
