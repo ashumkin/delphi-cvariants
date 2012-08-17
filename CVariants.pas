@@ -4,6 +4,10 @@ interface
 
 {$INCLUDE 'CVariantDelphiFeatures.inc'}
 
+{$WARN UNSAFE_TYPE OFF}
+{$WARN UNSAFE_CODE OFF}
+{$WARN UNSAFE_CAST OFF}
+
 type
   {$IFNDEF DELPHI_IS_UNICODE}
   UnicodeString = type WideString;
@@ -16,15 +20,26 @@ type
   private
     FObj: Variant;
 
-
     constructor CreateI(const Int: IUnknown);
     class function VariantToRef(const Obj: Variant): IUnknown;
     class function ConstToRef(const Obj: TVarRec): IUnknown;
     class function MakeI(const Int: IUnknown): CVariant; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
     function GetAsPVariant: PVariant; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
     function GetHash: Integer;
+
+    // maps and lists
     function GetItems(const Ind: Variant): CVariant;
     procedure SetItems(const Ind: Variant; const NewObj: CVariant);
+
+    procedure RaiseNotAnArray;
+    function GetCollection: IUnknown;
+    function GetDeepItem(const Indices: array of const): IUnknown;
+    function GetDeepParent(const Indices: array of const): IUnknown;
+    function GetDeepParent2(const IndicesAndObj: array of const): IUnknown;
+
+    function GetIsEmpty: Boolean;
+    function GetIsFull: Boolean;
+    function GetSize: Integer;
   public
     destructor Destroy; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
     constructor CreateDisowned(Obj: TObject); {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
@@ -44,15 +59,32 @@ type
     class function MakeV(const Vrn: Variant): CVariant; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
     function ToString: string;
     function ToInt: Integer;
-    function Get(const Bounds: array of const): CVariant; // I failed to make a property out of them
-    procedure Put(const Bounds: array of const; const NewObj: CVariant);
-    procedure Remove(const Bounds: array of const);
-    procedure Insert(const Bounds: array of const; const NewObj: CVariant);
-    procedure Append(const Bounds: array of const; const NewObj: CVariant);
+
+    // maps and lists
+
+    function Get(const Indices: array of const): CVariant; // I failed to make a property out of them
+    procedure Put(const Indices: array of const; const NewObj: CVariant); overload;
+    procedure Put(const IndicesAndObj: array of const); overload;
+    procedure Remove(const Indices: array of const);
+    procedure Insert(const Indices: array of const; const NewObj: CVariant); overload;
+    procedure Insert(const IndicesAndObj: array of const); overload;
+    procedure Append(const Indices: array of const; const NewObj: CVariant); overload;
+    procedure Append(const IndicesAndObj: array of const); overload;
+    procedure Append(const NewObj: CVariant); overload;
+
+    procedure Clear(const Indices: array of const); overload; // makes collection empty without destroying
+    procedure Clear; overload; // makes collection empty without destroying
+    function IsEmptyDeep(const Indices: array of const): Boolean;
+    function IsFullDeep(const Indices: array of const): Boolean;
+    function SizeDeep(const Indices: array of const): Integer;
+
     property AsVariant: Variant read FObj write FObj;
-    property Items[const Ind: Variant]: CVariant read GetItems write SetItems;
+    property Items[const Ind: Variant]: CVariant read GetItems write SetItems; // TODO: Delphi 2006 - default?
     property AsPVariant: PVariant read GetAsPVariant;
     property Hash: Integer read GetHash;
+    property IsEmpty: Boolean read GetIsEmpty;
+    property IsFull: Boolean read GetIsFull;
+    property Size: Integer read GetSize;
   end;
 
 implementation
@@ -239,217 +271,260 @@ begin
   Result := intOf(VariantToRef(FObj));
 end;
 
-function CVariant.Get(const Bounds: array of const): CVariant;
-var
-  i: Integer;
-  LIU: IUnknown;
-  LIL: IList;
-  LIM: IMap;
+procedure CVariant.RaiseNotAnArray;
 begin
-  case TVarData(FObj).VType of
-  varUnknown: LIU := IUnknown(TVarData(FObj).VUnknown);
-  varDispatch: LIU := IDispatch(TVarData(FObj).VDispatch);
-  else
-    raise EVariantNotAnArrayError.Create(VarToStr(FObj));
-  end;
-
-  for i := Low(Bounds) to High(Bounds) do
-  begin
-    if Supports(LIU, IObject, LIL) then
-    begin
-      if Bounds[i].VType <> vtInteger then
-        raise EVariantInvalidArgError.Create(stringOf(LIL));
-      LIU := LIL.item[Bounds[i].VInteger];
-    end else if Supports(LIU, IMap, LIM) then
-    begin
-      LIU := LIM.get(ConstToRef(Bounds[i]));
-    end else
-    begin
-      raise EInvalidCast.create(VarToStr(FObj));
-    end;
-    LIL := nil; LIM := nil;
-  end;
-
-  Result := MakeI(LIU);
+  raise EVariantNotAnArrayError.Create(VarToStr(FObj));
 end;
 
-procedure CVariant.Put(const Bounds: array of const; const NewObj: CVariant);
+function CVariant.GetCollection: IUnknown;
+begin
+  Result := nil;
+  case TVarData(FObj).VType of
+  varUnknown: Result := IUnknown(TVarData(FObj).VUnknown);
+  varDispatch: Result := IDispatch(TVarData(FObj).VDispatch);
+  else
+    RaiseNotAnArray;
+  end;
+end;
+
+function CVariant.GetDeepItem(const Indices: array of const): IUnknown;
 var
   i: Integer;
   LIU: IUnknown;
   LIL: IList;
   LIM: IMap;
 begin
-  case TVarData(FObj).VType of
-  varUnknown: LIU := IUnknown(TVarData(FObj).VUnknown);
-  varDispatch: LIU := IDispatch(TVarData(FObj).VDispatch);
-  else
-    raise EVariantNotAnArrayError.Create(VarToStr(FObj));
-  end;
+  Result := nil;
+  LIU := GetCollection;
 
-  for i := Low(Bounds) to High(Bounds) - 1 do
+  for i := Low(Indices) to High(Indices) do
   begin
     if Supports(LIU, IObject, LIL) then
     begin
-      if Bounds[i].VType <> vtInteger then
+      if Indices[i].VType <> vtInteger then
         raise EVariantInvalidArgError.Create(stringOf(LIL));
-      LIU := LIL.item[Bounds[i].VInteger];
+      LIU := LIL.item[Indices[i].VInteger];
     end else if Supports(LIU, IMap, LIM) then
-    begin
-      LIU := LIM.get(ConstToRef(Bounds[i]));
-    end else
-    begin
-      raise EInvalidCast.create(VarToStr(FObj));
-    end;
+      LIU := LIM.get(ConstToRef(Indices[i]))
+    else
+      RaiseNotAnArray;
     LIL := nil; LIM := nil;
   end;
+
+  Result := LIU;
+end;
+
+function CVariant.GetDeepParent(const Indices: array of const): IUnknown;
+var
+  i: Integer;
+  LIU: IUnknown;
+  LIL: IList;
+  LIM: IMap;
+begin
+  Result := nil;
+  LIU := GetCollection;
+
+  if Length(Indices) < 1 then
+    raise EVariantInvalidArgError.Create('At least one index is expected');
+
+  for i := Low(Indices) to High(Indices) - 1 do
+  begin
+    if Supports(LIU, IObject, LIL) then
+    begin
+      if Indices[i].VType <> vtInteger then
+        raise EVariantInvalidArgError.Create(stringOf(LIL));
+      LIU := LIL.item[Indices[i].VInteger];
+    end else if Supports(LIU, IMap, LIM) then
+      LIU := LIM.get(ConstToRef(Indices[i]))
+    else
+      RaiseNotAnArray;
+    LIL := nil; LIM := nil;
+  end;
+
+  Result := LIU;
+end;
+
+function CVariant.GetDeepParent2(const IndicesAndObj: array of const): IUnknown;
+var
+  i: Integer;
+  LIU: IUnknown;
+  LIL: IList;
+  LIM: IMap;
+begin
+  Result := nil;
+  LIU := GetCollection;
+
+  if Length(IndicesAndObj) < 2 then
+    raise EVariantInvalidArgError.Create('At least one index and one object is expected');
+
+  for i := Low(IndicesAndObj) to High(IndicesAndObj) - 2 do
+  begin
+    if Supports(LIU, IObject, LIL) then
+    begin
+      if IndicesAndObj[i].VType <> vtInteger then
+        raise EVariantInvalidArgError.Create(stringOf(LIL));
+      LIU := LIL.item[IndicesAndObj[i].VInteger];
+    end else if Supports(LIU, IMap, LIM) then
+      LIU := LIM.get(ConstToRef(IndicesAndObj[i]))
+    else
+      RaiseNotAnArray;
+    LIL := nil; LIM := nil;
+  end;
+
+  Result := LIU;
+end;
+
+function CVariant.Get(const Indices: array of const): CVariant;
+begin
+  Result := MakeI(GetDeepItem(Indices));
+end;
+
+procedure CVariant.Put(const Indices: array of const; const NewObj: CVariant);
+var
+  LIU: IUnknown;
+  LIL: IList;
+  LIM: IMap;
+begin
+  LIU := GetDeepParent(Indices);
 
   if Supports(LIU, IObject, LIL) then
   begin
-    if Bounds[High(Bounds)].VType <> vtInteger then
+    if Indices[High(Indices)].VType <> vtInteger then
       raise EVariantInvalidArgError.Create(stringOf(LIL));
-    LIL.item[Bounds[High(Bounds)].VInteger] := VariantToRef(NewObj.FObj);
+    LIL.item[Indices[High(Indices)].VInteger] := VariantToRef(NewObj.FObj);
   end else if Supports(LIU, IMap, LIM) then
-  begin
-    LIM.put(ConstToRef(Bounds[High(Bounds)]), VariantToRef(NewObj.FObj));
-  end else
-  begin
-    raise EInvalidCast.create(VarToStr(FObj));
-  end;
+    LIM.put(ConstToRef(Indices[High(Indices)]), VariantToRef(NewObj.FObj))
+  else
+    RaiseNotAnArray;
   LIL := nil; LIM := nil;
 end;
 
-procedure CVariant.Remove(const Bounds: array of const);
+procedure CVariant.Put(const IndicesAndObj: array of const);
 var
-  i: Integer;
   LIU: IUnknown;
   LIL: IList;
   LIM: IMap;
 begin
-  case TVarData(FObj).VType of
-  varUnknown: LIU := IUnknown(TVarData(FObj).VUnknown);
-  varDispatch: LIU := IDispatch(TVarData(FObj).VDispatch);
-  else
-    raise EVariantNotAnArrayError.Create(VarToStr(FObj));
-  end;
-
-  for i := Low(Bounds) to High(Bounds) - 1 do
-  begin
-    if Supports(LIU, IObject, LIL) then
-    begin
-      if Bounds[i].VType <> vtInteger then
-        raise EVariantInvalidArgError.Create(stringOf(LIL));
-      LIU := LIL.item[Bounds[i].VInteger];
-    end else if Supports(LIU, IMap, LIM) then
-    begin
-      LIU := LIM.get(ConstToRef(Bounds[i]));
-    end else
-    begin
-      raise EInvalidCast.create(VarToStr(FObj));
-    end;
-    LIL := nil; LIM := nil;
-  end;
+  LIU := GetDeepParent2(IndicesAndObj);
 
   if Supports(LIU, IObject, LIL) then
   begin
-    if Bounds[High(Bounds)].VType <> vtInteger then
+    if IndicesAndObj[High(IndicesAndObj) - 1].VType <> vtInteger then
       raise EVariantInvalidArgError.Create(stringOf(LIL));
-    LIL.remove(Bounds[High(Bounds)].VInteger);
+    LIL.item[IndicesAndObj[High(IndicesAndObj) - 1].VInteger] :=
+      ConstToRef(IndicesAndObj[High(IndicesAndObj)]);
   end else if Supports(LIU, IMap, LIM) then
-  begin
-    LIM.remove(ConstToRef(Bounds[High(Bounds)]));
-  end else
-  begin
-    raise EInvalidCast.create(VarToStr(FObj));
-  end;
+    LIM.put(ConstToRef(IndicesAndObj[High(IndicesAndObj) - 1]),
+      ConstToRef(IndicesAndObj[High(IndicesAndObj)]))
+  else
+    RaiseNotAnArray;
   LIL := nil; LIM := nil;
 end;
 
-procedure CVariant.Insert(const Bounds: array of const; const NewObj: CVariant);
+procedure CVariant.Remove(const Indices: array of const);
 var
-  i: Integer;
   LIU: IUnknown;
   LIL: IList;
   LIM: IMap;
 begin
-  case TVarData(FObj).VType of
-  varUnknown: LIU := IUnknown(TVarData(FObj).VUnknown);
-  varDispatch: LIU := IDispatch(TVarData(FObj).VDispatch);
-  else
-    raise EVariantNotAnArrayError.Create(VarToStr(FObj));
-  end;
-
-  for i := Low(Bounds) to High(Bounds) - 1 do
-  begin
-    if Supports(LIU, IObject, LIL) then
-    begin
-      if Bounds[i].VType <> vtInteger then
-        raise EVariantInvalidArgError.Create(stringOf(LIL));
-      LIU := LIL.item[Bounds[i].VInteger];
-    end else if Supports(LIU, IMap, LIM) then
-    begin
-      LIU := LIM.get(ConstToRef(Bounds[i]));
-    end else
-    begin
-      raise EInvalidCast.create(VarToStr(FObj));
-    end;
-    LIL := nil; LIM := nil;
-  end;
+  LIU := GetDeepParent(Indices);
 
   if Supports(LIU, IObject, LIL) then
   begin
-    if Bounds[High(Bounds)].VType <> vtInteger then
+    if Indices[High(Indices)].VType <> vtInteger then
       raise EVariantInvalidArgError.Create(stringOf(LIL));
-    LIL.insert(Bounds[High(Bounds)].VInteger, VariantToRef(NewObj.FObj));
+    LIL.remove(Indices[High(Indices)].VInteger);
   end else if Supports(LIU, IMap, LIM) then
-  begin
-    LIM.put(ConstToRef(Bounds[High(Bounds)]), VariantToRef(NewObj.FObj));
-  end else
-  begin
-    raise EInvalidCast.create(VarToStr(FObj));
-  end;
+    LIM.remove(ConstToRef(Indices[High(Indices)]))
+  else
+    RaiseNotAnArray;
   LIL := nil; LIM := nil;
 end;
 
-procedure CVariant.Append(const Bounds: array of const; const NewObj: CVariant);
+procedure CVariant.Insert(const Indices: array of const; const NewObj: CVariant);
 var
-  i: Integer;
   LIU: IUnknown;
   LIL: IList;
   LIM: IMap;
 begin
-  case TVarData(FObj).VType of
-  varUnknown: LIU := IUnknown(TVarData(FObj).VUnknown);
-  varDispatch: LIU := IDispatch(TVarData(FObj).VDispatch);
-  else
-    raise EVariantNotAnArrayError.Create(VarToStr(FObj));
-  end;
-
-  for i := Low(Bounds) to High(Bounds) do
-  begin
-    if Supports(LIU, IObject, LIL) then
-    begin
-      if Bounds[i].VType <> vtInteger then
-        raise EVariantInvalidArgError.Create(stringOf(LIL));
-      LIU := LIL.item[Bounds[i].VInteger];
-    end else if Supports(LIU, IMap, LIM) then
-    begin
-      LIU := LIM.get(ConstToRef(Bounds[i]));
-    end else
-    begin
-      raise EInvalidCast.create(VarToStr(FObj));
-    end;
-    LIL := nil; LIM := nil;
-  end;
+  LIU := GetDeepParent(Indices);
 
   if Supports(LIU, IObject, LIL) then
   begin
-    LIL.add(VariantToRef(NewObj.FObj));
-  end else
-  begin
-    raise EInvalidCast.create(VarToStr(FObj));
-  end;
+    if Indices[High(Indices)].VType <> vtInteger then
+      raise EVariantInvalidArgError.Create(stringOf(LIL));
+    LIL.insert(Indices[High(Indices)].VInteger, VariantToRef(NewObj.FObj));
+  end else if Supports(LIU, IMap, LIM) then
+    LIM.put(ConstToRef(Indices[High(Indices)]), VariantToRef(NewObj.FObj))
+  else
+    RaiseNotAnArray;
   LIL := nil; LIM := nil;
+end;
+
+procedure CVariant.Insert(const IndicesAndObj: array of const);
+var
+  LIU: IUnknown;
+  LIL: IList;
+  LIM: IMap;
+begin
+  LIU := GetDeepParent2(IndicesAndObj);
+
+  if Supports(LIU, IObject, LIL) then
+  begin
+    if IndicesAndObj[High(IndicesAndObj) - 1].VType <> vtInteger then
+      raise EVariantInvalidArgError.Create(stringOf(LIL));
+    LIL.insert(IndicesAndObj[High(IndicesAndObj) - 1].VInteger,
+      ConstToRef(IndicesAndObj[High(IndicesAndObj)]));
+  end else if Supports(LIU, IMap, LIM) then
+    LIM.put(ConstToRef(IndicesAndObj[High(IndicesAndObj) - 1]),
+      ConstToRef(IndicesAndObj[High(IndicesAndObj)]))
+  else
+    RaiseNotAnArray;
+  LIL := nil; LIM := nil;
+end;
+
+procedure CVariant.Append(const Indices: array of const; const NewObj: CVariant);
+var
+  LIU: IUnknown;
+  LIL: IList;
+  LIM: IMap;
+begin
+  LIU := GetDeepItem(Indices);
+
+  if Supports(LIU, IObject, LIL) then
+    LIL.add(VariantToRef(NewObj.FObj))
+  else
+    RaiseNotAnArray;
+  LIL := nil; LIM := nil;
+end;
+
+procedure CVariant.Append(const IndicesAndObj: array of const);
+var
+  LIU: IUnknown;
+  LIL: IList;
+  LIM: IMap;
+begin
+  LIU := GetDeepParent(IndicesAndObj);
+
+  if Supports(LIU, IObject, LIL) then
+    LIL.add(ConstToRef(IndicesAndObj[High(IndicesAndObj)]))
+  else
+    RaiseNotAnArray;
+  LIL := nil; LIM := nil;
+end;
+
+procedure CVariant.Append(const NewObj: CVariant);
+var
+  LIU: IUnknown;
+  LIL: IList;
+begin
+  LIU := GetCollection;
+
+  if Supports(LIU, IObject, LIL) then
+    LIL.add(VariantToRef(NewObj.FObj))
+  else
+    RaiseNotAnArray;
+  LIL := nil;
 end;
 
 function CVariant.GetItems(const Ind: Variant): CVariant;
@@ -458,23 +533,14 @@ var
   LIL: IList;
   LIM: IMap;
 begin
-  case TVarData(FObj).VType of
-  varUnknown: LIU := IUnknown(TVarData(FObj).VUnknown);
-  varDispatch: LIU := IDispatch(TVarData(FObj).VDispatch);
-  else
-    raise EVariantNotAnArrayError.Create(VarToStr(FObj));
-  end;
+  LIU := GetCollection;
 
   if Supports(LIU, IObject, LIL) then
-  begin
-    LIU := LIL.item[Ind];
-  end else if Supports(LIU, IMap, LIM) then
-  begin
-    LIU := LIM.get(VariantToRef(Ind));
-  end else
-  begin
-    raise EInvalidCast.create(VarToStr(FObj));
-  end;
+    LIU := LIL.item[Ind]
+  else if Supports(LIU, IMap, LIM) then
+    LIU := LIM.get(VariantToRef(Ind))
+  else
+    RaiseNotAnArray;
   LIL := nil; LIM := nil;
 
   Result := MakeI(LIU);
@@ -486,23 +552,156 @@ var
   LIL: IList;
   LIM: IMap;
 begin
-  case TVarData(FObj).VType of
-  varUnknown: LIU := IUnknown(TVarData(FObj).VUnknown);
-  varDispatch: LIU := IDispatch(TVarData(FObj).VDispatch);
-  else
-    raise EVariantNotAnArrayError.Create(VarToStr(FObj));
-  end;
+  LIU := GetCollection;
 
   if Supports(LIU, IObject, LIL) then
-  begin
-    LIL.item[Ind] := VariantToRef(NewObj.FObj);
-  end else if Supports(LIU, IMap, LIM) then
-  begin
-    LIM.put(VariantToRef(Ind), VariantToRef(NewObj.FObj));
-  end else
-  begin
-    raise EInvalidCast.create(VarToStr(FObj));
-  end;
+    LIL.item[Ind] := VariantToRef(NewObj.FObj)
+  else if Supports(LIU, IMap, LIM) then
+    LIM.put(VariantToRef(Ind), VariantToRef(NewObj.FObj))
+  else
+    RaiseNotAnArray;
+  LIL := nil; LIM := nil;
+end;
+
+function CVariant.GetIsEmpty: Boolean;
+var
+  LIU: IUnknown;
+  LIL: IList;
+  LIM: IMap;
+begin
+  Result := False;
+  LIU := GetCollection;
+
+  if Supports(LIU, IObject, LIL) then
+    Result := LIL.isEmpty
+  else if Supports(LIU, IMap, LIM) then
+    Result := LIM.isEmpty
+  else
+    RaiseNotAnArray;
+  LIL := nil; LIM := nil;
+end;
+
+function CVariant.GetIsFull: Boolean;
+var
+  LIU: IUnknown;
+  LIL: IList;
+  LIM: IMap;
+begin
+  Result := False;
+  LIU := GetCollection;
+
+  if Supports(LIU, IObject, LIL) then
+    Result := LIL.isFull
+  else if Supports(LIU, IMap, LIM) then
+    Result := LIM.isFull
+  else
+    RaiseNotAnArray;
+  LIL := nil; LIM := nil;
+end;
+
+function CVariant.GetSize: Integer;
+var
+  LIU: IUnknown;
+  LIL: IList;
+  LIM: IMap;
+begin
+  Result := 0;
+  LIU := GetCollection;
+
+  if Supports(LIU, IObject, LIL) then
+    Result := LIL.size
+  else if Supports(LIU, IMap, LIM) then
+    Result := LIM.size
+  else
+    RaiseNotAnArray;
+  LIL := nil; LIM := nil;
+end;
+
+function CVariant.IsEmptyDeep(const Indices: array of const): Boolean;
+var
+  LIU: IUnknown;
+  LIL: IList;
+  LIM: IMap;
+begin
+  Result := False;
+  LIU := GetDeepItem(Indices);
+
+  if Supports(LIU, IObject, LIL) then
+    Result := LIL.isEmpty
+  else if Supports(LIU, IMap, LIM) then
+    Result := LIM.isEmpty
+  else
+    RaiseNotAnArray;
+  LIL := nil; LIM := nil;
+end;
+
+function CVariant.IsFullDeep(const Indices: array of const): Boolean;
+var
+  LIU: IUnknown;
+  LIL: IList;
+  LIM: IMap;
+begin
+  Result := False;
+  LIU := GetDeepItem(Indices);
+
+  if Supports(LIU, IObject, LIL) then
+    Result := LIL.isFull
+  else if Supports(LIU, IMap, LIM) then
+    Result := LIM.isFull
+  else
+    RaiseNotAnArray;
+  LIL := nil; LIM := nil;
+end;
+
+function CVariant.SizeDeep(const Indices: array of const): Integer;
+var
+  LIU: IUnknown;
+  LIL: IList;
+  LIM: IMap;
+begin
+  Result := 0;
+  LIU := GetDeepItem(Indices);
+
+  if Supports(LIU, IObject, LIL) then
+    Result := LIL.size
+  else if Supports(LIU, IMap, LIM) then
+    Result := LIM.size
+  else
+    RaiseNotAnArray;
+  LIL := nil; LIM := nil;
+end;
+
+procedure CVariant.Clear(const Indices: array of const);
+var
+  LIU: IUnknown;
+  LIL: IList;
+  LIM: IMap;
+begin
+  LIU := GetDeepItem(Indices);
+
+  if Supports(LIU, IObject, LIL) then
+    LIL.clear
+  else if Supports(LIU, IMap, LIM) then
+    LIM.clear
+  else
+    RaiseNotAnArray;
+  LIL := nil; LIM := nil;
+end;
+
+procedure CVariant.Clear;
+var
+  LIU: IUnknown;
+  LIL: IList;
+  LIM: IMap;
+begin
+  LIU := GetCollection;
+
+  if Supports(LIU, IObject, LIL) then
+    LIL.clear
+  else if Supports(LIU, IMap, LIM) then
+    LIM.clear
+  else
+    RaiseNotAnArray;
   LIL := nil; LIM := nil;
 end;
 
