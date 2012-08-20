@@ -78,14 +78,27 @@ type
     function IsFullDeep(const Indices: array of const): Boolean;
     function SizeDeep(const Indices: array of const): Integer;
 
-    property AsVariant: Variant read FObj write FObj;
-    property Items[const Ind: Variant]: CVariant read GetItems write SetItems; // TODO: Delphi 2006 - default?
+    function HasKey(const Key: string): Boolean;
+
+    property AsVariant: Variant read FObj write FObj;
+    property Items[const Ind: Variant]: CVariant read GetItems write SetItems; // TODO: Delphi 2006 - default?
     property AsPVariant: PVariant read GetAsPVariant;
     property Hash: Integer read GetHash;
     property IsEmpty: Boolean read GetIsEmpty;
     property IsFull: Boolean read GetIsFull;
     property Size: Integer read GetSize;
   end;
+
+  CIterator = {$IFNDEF DELPHI_HAS_RECORDS} object {$ELSE} record {$ENDIF}
+  private
+    FMap, FIterator: IUnknown;
+  public
+    constructor Create(const Map: CVariant);
+    destructor Destroy;
+    function Next(out Key: string; out Value: CVariant): Boolean;
+    function NextKey(out Key: string): Boolean;
+    function NextValue(out Value: CVariant): Boolean;
+  end;
 
 implementation
 
@@ -299,7 +312,7 @@ begin
 
   for i := Low(Indices) to High(Indices) do
   begin
-    if Supports(LIU, IObject, LIL) then
+    if Supports(LIU, IList, LIL) then
     begin
       if Indices[i].VType <> vtInteger then
         raise EVariantInvalidArgError.Create(stringOf(LIL));
@@ -329,7 +342,7 @@ begin
 
   for i := Low(Indices) to High(Indices) - 1 do
   begin
-    if Supports(LIU, IObject, LIL) then
+    if Supports(LIU, IList, LIL) then
     begin
       if Indices[i].VType <> vtInteger then
         raise EVariantInvalidArgError.Create(stringOf(LIL));
@@ -359,7 +372,7 @@ begin
 
   for i := Low(IndicesAndObj) to High(IndicesAndObj) - 2 do
   begin
-    if Supports(LIU, IObject, LIL) then
+    if Supports(LIU, IList, LIL) then
     begin
       if IndicesAndObj[i].VType <> vtInteger then
         raise EVariantInvalidArgError.Create(stringOf(LIL));
@@ -387,7 +400,7 @@ var
 begin
   LIU := GetDeepParent(Indices);
 
-  if Supports(LIU, IObject, LIL) then
+  if Supports(LIU, IList, LIL) then
   begin
     if Indices[High(Indices)].VType <> vtInteger then
       raise EVariantInvalidArgError.Create(stringOf(LIL));
@@ -407,7 +420,7 @@ var
 begin
   LIU := GetDeepParent2(IndicesAndObj);
 
-  if Supports(LIU, IObject, LIL) then
+  if Supports(LIU, IList, LIL) then
   begin
     if IndicesAndObj[High(IndicesAndObj) - 1].VType <> vtInteger then
       raise EVariantInvalidArgError.Create(stringOf(LIL));
@@ -429,7 +442,7 @@ var
 begin
   LIU := GetDeepParent(Indices);
 
-  if Supports(LIU, IObject, LIL) then
+  if Supports(LIU, IList, LIL) then
   begin
     if Indices[High(Indices)].VType <> vtInteger then
       raise EVariantInvalidArgError.Create(stringOf(LIL));
@@ -449,7 +462,7 @@ var
 begin
   LIU := GetDeepParent(Indices);
 
-  if Supports(LIU, IObject, LIL) then
+  if Supports(LIU, IList, LIL) then
   begin
     if Indices[High(Indices)].VType <> vtInteger then
       raise EVariantInvalidArgError.Create(stringOf(LIL));
@@ -469,7 +482,7 @@ var
 begin
   LIU := GetDeepParent2(IndicesAndObj);
 
-  if Supports(LIU, IObject, LIL) then
+  if Supports(LIU, IList, LIL) then
   begin
     if IndicesAndObj[High(IndicesAndObj) - 1].VType <> vtInteger then
       raise EVariantInvalidArgError.Create(stringOf(LIL));
@@ -491,7 +504,7 @@ var
 begin
   LIU := GetDeepItem(Indices);
 
-  if Supports(LIU, IObject, LIL) then
+  if Supports(LIU, IList, LIL) then
     LIL.add(VariantToRef(NewObj.FObj))
   else
     RaiseNotAnArray;
@@ -506,7 +519,7 @@ var
 begin
   LIU := GetDeepParent(IndicesAndObj);
 
-  if Supports(LIU, IObject, LIL) then
+  if Supports(LIU, IList, LIL) then
     LIL.add(ConstToRef(IndicesAndObj[High(IndicesAndObj)]))
   else
     RaiseNotAnArray;
@@ -520,7 +533,7 @@ var
 begin
   LIU := GetCollection;
 
-  if Supports(LIU, IObject, LIL) then
+  if Supports(LIU, IList, LIL) then
     LIL.add(VariantToRef(NewObj.FObj))
   else
     RaiseNotAnArray;
@@ -535,7 +548,7 @@ var
 begin
   LIU := GetCollection;
 
-  if Supports(LIU, IObject, LIL) then
+  if Supports(LIU, IList, LIL) then
     LIU := LIL.item[Ind]
   else if Supports(LIU, IMap, LIM) then
     LIU := LIM.get(VariantToRef(Ind))
@@ -554,7 +567,7 @@ var
 begin
   LIU := GetCollection;
 
-  if Supports(LIU, IObject, LIL) then
+  if Supports(LIU, IList, LIL) then
     LIL.item[Ind] := VariantToRef(NewObj.FObj)
   else if Supports(LIU, IMap, LIM) then
     LIM.put(VariantToRef(Ind), VariantToRef(NewObj.FObj))
@@ -572,7 +585,7 @@ begin
   Result := False;
   LIU := GetCollection;
 
-  if Supports(LIU, IObject, LIL) then
+  if Supports(LIU, IList, LIL) then
     Result := LIL.isEmpty
   else if Supports(LIU, IMap, LIM) then
     Result := LIM.isEmpty
@@ -590,7 +603,7 @@ begin
   Result := False;
   LIU := GetCollection;
 
-  if Supports(LIU, IObject, LIL) then
+  if Supports(LIU, IList, LIL) then
     Result := LIL.isFull
   else if Supports(LIU, IMap, LIM) then
     Result := LIM.isFull
@@ -608,7 +621,7 @@ begin
   Result := 0;
   LIU := GetCollection;
 
-  if Supports(LIU, IObject, LIL) then
+  if Supports(LIU, IList, LIL) then
     Result := LIL.size
   else if Supports(LIU, IMap, LIM) then
     Result := LIM.size
@@ -626,7 +639,7 @@ begin
   Result := False;
   LIU := GetDeepItem(Indices);
 
-  if Supports(LIU, IObject, LIL) then
+  if Supports(LIU, IList, LIL) then
     Result := LIL.isEmpty
   else if Supports(LIU, IMap, LIM) then
     Result := LIM.isEmpty
@@ -644,7 +657,7 @@ begin
   Result := False;
   LIU := GetDeepItem(Indices);
 
-  if Supports(LIU, IObject, LIL) then
+  if Supports(LIU, IList, LIL) then
     Result := LIL.isFull
   else if Supports(LIU, IMap, LIM) then
     Result := LIM.isFull
@@ -662,7 +675,7 @@ begin
   Result := 0;
   LIU := GetDeepItem(Indices);
 
-  if Supports(LIU, IObject, LIL) then
+  if Supports(LIU, IList, LIL) then
     Result := LIL.size
   else if Supports(LIU, IMap, LIM) then
     Result := LIM.size
@@ -679,7 +692,7 @@ var
 begin
   LIU := GetDeepItem(Indices);
 
-  if Supports(LIU, IObject, LIL) then
+  if Supports(LIU, IList, LIL) then
     LIL.clear
   else if Supports(LIU, IMap, LIM) then
     LIM.clear
@@ -696,7 +709,7 @@ var
 begin
   LIU := GetCollection;
 
-  if Supports(LIU, IObject, LIL) then
+  if Supports(LIU, IList, LIL) then
     LIL.clear
   else if Supports(LIU, IMap, LIM) then
     LIM.clear
@@ -704,5 +717,91 @@ begin
     RaiseNotAnArray;
   LIL := nil; LIM := nil;
 end;
+
+function CVariant.HasKey(const Key: string): Boolean;
+var
+  LIU: IUnknown;
+  LIM: IMap;
+begin
+  Result := False;
+  LIU := GetCollection;
+
+  if Supports(LIU, IMap, LIM) then
+    Result := LIM.has(Key)
+  else
+    RaiseNotAnArray;
+  LIM := nil;
+end;
+
+constructor CIterator.Create(const Map: CVariant);
+var
+  LIU: IUnknown;
+  LIM: IMap;
+begin
+  LIU := Map.GetCollection;
+
+  if Supports(LIU, IMap, LIM) then
+  begin
+    FIterator := LIM.keys;
+    FMap := LIM;
+  end else
+    Map.RaiseNotAnArray;
+  LIM := nil;
+end;
+
+destructor CIterator.Destroy;
+begin
+  FIterator := nil;
+  FMap := nil;
+end;
+
+function CIterator.Next(out Key: string; out Value: CVariant): Boolean;
+var
+  Next_Key: string;
+begin
+  Result := False;
+  if not Assigned(FIterator) then Exit;
+  if IIterator(FIterator).hasNext then
+  begin
+    Next_Key := IIterator(FIterator).nextStr;
+    Key := Next_Key;
+    Value.CreateI(IMap(FMap).Get(Next_Key));
+    Result := True;
+  end else
+  begin
+    FIterator := nil;
+    FMap := nil;
+  end;
+end;
+
+function CIterator.NextKey(out Key: string): Boolean;
+var
+  Next_Key: string;
+begin
+  Result := False;
+  if not Assigned(FIterator) then Exit;
+  if IIterator(FIterator).hasNext then
+  begin
+    Next_Key := IIterator(FIterator).nextStr;
+    Key := Next_Key;
+    Result := True;
+  end else
+    Destroy;
+end;
+
+function CIterator.NextValue(out Value: CVariant): Boolean;
+var
+  Next_Key: string;
+begin
+  Result := False;
+  if not Assigned(FIterator) then Exit;
+  if IIterator(FIterator).hasNext then
+  begin
+    Next_Key := IIterator(FIterator).nextStr;
+    Value.CreateI(IMap(FMap).Get(Next_Key));
+    Result := True;
+  end else
+    Destroy;
+end;
 
 end.
