@@ -122,19 +122,25 @@ type
     property Map: CVariant read GetMap;
   end;
 
-function CVariantMakeDisowned(Obj: TObject): CVariant; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
-function CVariantEmpty: CVariant; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
-function CVariantMake(Obj: TObject): CVariant; overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
-function CVariantMake(const Str: string): CVariant;  overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
-function CVariantMake(Int: Integer): CVariant; overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
-function CVariantMake(Dbl: Double): CVariant;  overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
-function CVariantMake(Bol: Boolean): CVariant; overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
-function CVariantMakeV(const Vrn: Variant): CVariant; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
-function CVariantMakeL: CVariant; overload;
-function CVariantMakeL(const AItems: array of const): CVariant; overload;
-function CVariantMakeM: CVariant; overload;
-function CVariantMakeM(const AKeyValues: array of const): CVariant; overload;
-function CVariantMakeM(const AKeys, AValues: array of const): CVariant; overload;
+function CVarDisowned(Obj: TObject): CVariant; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
+function CVarEmpty: CVariant; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
+function CVar(Obj: TObject): CVariant; overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
+function CVar(const Str: string): CVariant;  overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
+function CVar(Int: Integer): CVariant; overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
+function CVar(Dbl: Double): CVariant;  overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
+function CVar(Bol: Boolean): CVariant; overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
+function CVarV(const Vrn: Variant): CVariant; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
+function CVarL: CVariant; overload;
+function CVarL(const AItems: array of const): CVariant; overload;
+function CVarM: CVariant; overload;
+function CVarM(const AKeyValues: array of const): CVariant; overload;
+function CVarM(const AKeys, AValues: array of const): CVariant; overload;
+
+function VarL: Variant; overload;
+function VarL(const AItems: array of const): Variant; overload;
+function VarM: Variant; overload;
+function VarM(const AKeyValues: array of const): Variant; overload;
+function VarM(const AKeys, AValues: array of const): Variant; overload;
 
 implementation
 
@@ -365,69 +371,94 @@ begin
   end;
 end;
 
-function CVariantMakeDisowned(Obj: TObject): CVariant;
+function CVarDisowned(Obj: TObject): CVariant;
 begin
   Result.FObj := iref(Obj);
 end;
 
-function CVariantEmpty: CVariant;
+function CVarEmpty: CVariant;
 begin
   Result.FObj := Unassigned;
 end;
 
-function CVariantMake(Obj: TObject): CVariant;
+function CVar(Obj: TObject): CVariant;
 begin
   Result.FObj := iown(Obj);
 end;
 
-function CVariantMake(const Str: string): CVariant;
+function CVar(const Str: string): CVariant;
 begin
   Result.FObj := Str;
 end;
 
-function CVariantMake(Int: Integer): CVariant;
+function CVar(Int: Integer): CVariant;
 begin
   Result.FObj := Int;
 end;
 
-function CVariantMake(Dbl: Double): CVariant;
+function CVar(Dbl: Double): CVariant;
 begin
   Result.FObj := Dbl;
 end;
 
-function CVariantMake(Bol: Boolean): CVariant;
+function CVar(Bol: Boolean): CVariant;
 begin
   Result.FObj := Bol;
 end;
 
-function CVariantMakeV(const Vrn: Variant): CVariant;
+function CVarV(const Vrn: Variant): CVariant;
 begin
   Result.FObj := Vrn;
 end;
 
-function CVariantMakeL: CVariant;
+function CVarL: CVariant;
 begin
   Result.CreateL;
 end;
 
-function CVariantMakeL(const AItems: array of const): CVariant;
+function CVarL(const AItems: array of const): CVariant;
 begin
   Result.CreateL(AItems);
 end;
 
-function CVariantMakeM: CVariant;
+function CVarM: CVariant;
 begin
   Result.CreateM;
 end;
 
-function CVariantMakeM(const AKeyValues: array of const): CVariant;
+function CVarM(const AKeyValues: array of const): CVariant;
 begin
   Result.CreateM(AKeyValues);
 end;
 
-function CVariantMakeM(const AKeys, AValues: array of const): CVariant;
+function CVarM(const AKeys, AValues: array of const): CVariant;
 begin
   Result.CreateM(AKeys, AValues);
+end;
+
+function VarL: Variant;
+begin
+  CVariant(Result).CreateL;
+end;
+
+function VarL(const AItems: array of const): Variant;
+begin
+  CVariant(Result).CreateL(AItems);
+end;
+
+function VarM: Variant;
+begin
+  CVariant(Result).CreateM;
+end;
+
+function VarM(const AKeyValues: array of const): Variant;
+begin
+  CVariant(Result).CreateM(AKeyValues);
+end;
+
+function VarM(const AKeys, AValues: array of const): Variant;
+begin
+  CVariant(Result).CreateM(AKeys, AValues);
 end;
 
 function CVariant.GetAsPVariant: PVariant;
