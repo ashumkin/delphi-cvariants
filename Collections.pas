@@ -37,6 +37,9 @@ uses
 const
   rcs_id :string = '@(#)$Id: Collections.pas,v 1.10 2001/10/23 03:55:20 juanco Exp $';
 
+{$WARN UNSAFE_TYPE OFF}
+{$WARN UNSAFE_CAST OFF}
+
 const
     RED   = false;
     BLACK = true;
@@ -420,7 +423,7 @@ type
     function boolValue :boolean;
   end;
 
-  TBoolReference = class(TAbstractObject, IComparable, IVariant, INumber, IInteger, ILongint, IDouble)
+  TBoolReference = class(TAbstractObject, IComparable, IVariant, INumber, IInteger, ILongint, IDouble, IBoolean)
     _bol  :boolean;
 
     constructor create(const bol :boolean);
@@ -974,6 +977,7 @@ type
   function stringOf(item: IUnknown)      :string;   overload;
   function stringOf(item: TObject)       :string;   overload;
   function intOf(item: IUnknown)         :integer;  overload;
+  function boolOf(item: IUnknown)        :boolean;
 
 implementation
 
@@ -1097,7 +1101,15 @@ begin
    result := n.intValue
 end;
 
-
+function boolOf(item: IUnknown) :boolean;
+var
+  b: IBoolean;
+begin
+   item.QueryInterface(IBoolean, b);
+   if b = nil then
+      raise EInvalidCast.create(stringOf(item));
+   result := b.boolValue;
+end;
 
 function equal(item1, item2: IUnknown): boolean;
 var

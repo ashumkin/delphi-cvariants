@@ -61,21 +61,9 @@ type
     constructor CreateM; overload;
     constructor CreateM(const AKeyValues: array of const); overload;
     constructor CreateM(const AKeys, AValues: array of const); overload;
-    class function MakeDisowned(Obj: TObject): CVariant; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
-    class function Empty: CVariant; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
-    class function Make(Obj: TObject): CVariant; overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
-    class function Make(const Str: string): CVariant;  overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
-    class function Make(Int: Integer): CVariant; overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
-    class function Make(Dbl: Double): CVariant;  overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
-    class function Make(Bol: Boolean): CVariant; overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
-    class function MakeV(const Vrn: Variant): CVariant; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
-    class function MakeL: CVariant; overload;
-    class function MakeL(const AItems: array of const): CVariant; overload;
-    class function MakeM: CVariant; overload;
-    class function MakeM(const AKeyValues: array of const): CVariant; overload;
-    class function MakeM(const AKeys, AValues: array of const): CVariant; overload;
     function ToString: string;
     function ToInt: Integer;
+    function ToBool: Boolean;
 
     // maps and lists
 
@@ -133,6 +121,20 @@ type
     function NextValue(out Value: CVariant): Boolean;
     property Map: CVariant read GetMap;
   end;
+
+function CVariantMakeDisowned(Obj: TObject): CVariant; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
+function CVariantEmpty: CVariant; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
+function CVariantMake(Obj: TObject): CVariant; overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
+function CVariantMake(const Str: string): CVariant;  overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
+function CVariantMake(Int: Integer): CVariant; overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
+function CVariantMake(Dbl: Double): CVariant;  overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
+function CVariantMake(Bol: Boolean): CVariant; overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
+function CVariantMakeV(const Vrn: Variant): CVariant; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
+function CVariantMakeL: CVariant; overload;
+function CVariantMakeL(const AItems: array of const): CVariant; overload;
+function CVariantMakeM: CVariant; overload;
+function CVariantMakeM(const AKeyValues: array of const): CVariant; overload;
+function CVariantMakeM(const AKeys, AValues: array of const): CVariant; overload;
 
 implementation
 
@@ -363,67 +365,67 @@ begin
   end;
 end;
 
-class function CVariant.MakeDisowned(Obj: TObject): CVariant;
+function CVariantMakeDisowned(Obj: TObject): CVariant;
 begin
   Result.FObj := iref(Obj);
 end;
 
-class function CVariant.Empty: CVariant;
+function CVariantEmpty: CVariant;
 begin
   Result.FObj := Unassigned;
 end;
 
-class function CVariant.Make(Obj: TObject): CVariant;
+function CVariantMake(Obj: TObject): CVariant;
 begin
   Result.FObj := iown(Obj);
 end;
 
-class function CVariant.Make(const Str: string): CVariant;
+function CVariantMake(const Str: string): CVariant;
 begin
   Result.FObj := Str;
 end;
 
-class function CVariant.Make(Int: Integer): CVariant;
+function CVariantMake(Int: Integer): CVariant;
 begin
   Result.FObj := Int;
 end;
 
-class function CVariant.Make(Dbl: Double): CVariant;
+function CVariantMake(Dbl: Double): CVariant;
 begin
   Result.FObj := Dbl;
 end;
 
-class function CVariant.Make(Bol: Boolean): CVariant;
+function CVariantMake(Bol: Boolean): CVariant;
 begin
   Result.FObj := Bol;
 end;
 
-class function CVariant.MakeV(const Vrn: Variant): CVariant;
+function CVariantMakeV(const Vrn: Variant): CVariant;
 begin
   Result.FObj := Vrn;
 end;
 
-class function CVariant.MakeL: CVariant;
+function CVariantMakeL: CVariant;
 begin
   Result.CreateL;
 end;
 
-class function CVariant.MakeL(const AItems: array of const): CVariant;
+function CVariantMakeL(const AItems: array of const): CVariant;
 begin
   Result.CreateL(AItems);
 end;
 
-class function CVariant.MakeM: CVariant;
+function CVariantMakeM: CVariant;
 begin
   Result.CreateM;
 end;
 
-class function CVariant.MakeM(const AKeyValues: array of const): CVariant;
+function CVariantMakeM(const AKeyValues: array of const): CVariant;
 begin
   Result.CreateM(AKeyValues);
 end;
 
-class function CVariant.MakeM(const AKeys, AValues: array of const): CVariant;
+function CVariantMakeM(const AKeys, AValues: array of const): CVariant;
 begin
   Result.CreateM(AKeys, AValues);
 end;
@@ -446,6 +448,11 @@ end;
 function CVariant.ToInt: Integer;
 begin
   Result := intOf(VariantToRef(FObj));
+end;
+
+function CVariant.ToBool: Boolean;
+begin
+  Result := boolOf(VariantToRef(FObj));
 end;
 
 procedure CVariant.RaiseNotAnArray;
