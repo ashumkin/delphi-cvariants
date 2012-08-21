@@ -38,7 +38,8 @@ program TestDUNIT;
 uses
   TestFramework,
   TextTestRunner,
-  CollectionsTests in 'CollectionsTests.pas';
+  CollectionsTests in 'CollectionsTests.pas',
+  CVariantTests in 'CVariantTests.pas';
 
 {$R *.res}
 

@@ -8,6 +8,10 @@ interface
 {$WARN UNSAFE_CODE OFF}
 {$WARN UNSAFE_CAST OFF}
 
+const
+  vtList = -40;
+  vtMap  = -41;
+
 type
   {$IFNDEF DELPHI_IS_UNICODE}
   UnicodeString = type WideString;
@@ -23,9 +27,12 @@ type
     constructor CreateI(const Int: IUnknown);
     class function VariantToRef(const Obj: Variant): IUnknown;
     class function ConstToRef(const Obj: TVarRec): IUnknown;
+    class function GetTVarRecType(const Obj: Variant): SmallInt;
     class function MakeI(const Int: IUnknown): CVariant; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
     function GetAsPVariant: PVariant; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
     function GetHash: Integer;
+
+    function GetSelfTVarRecType: SmallInt;
 
     // maps and lists
     function GetItems(const Ind: Variant): CVariant;
@@ -49,6 +56,11 @@ type
     constructor Create(Dbl: Double);  overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
     constructor Create(Bol: Boolean); overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
     constructor CreateV(const Vrn: Variant); {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
+    constructor CreateL; overload;
+    constructor CreateL(const AItems: array of const); overload;
+    constructor CreateM; overload;
+    constructor CreateM(const AKeyValues: array of const); overload;
+    constructor CreateM(const AKeys, AValues: array of const); overload;
     class function MakeDisowned(Obj: TObject): CVariant; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
     class function Empty: CVariant; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
     class function Make(Obj: TObject): CVariant; overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
@@ -57,6 +69,11 @@ type
     class function Make(Dbl: Double): CVariant;  overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
     class function Make(Bol: Boolean): CVariant; overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
     class function MakeV(const Vrn: Variant): CVariant; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
+    class function MakeL: CVariant; overload;
+    class function MakeL(const AItems: array of const): CVariant; overload;
+    class function MakeM: CVariant; overload;
+    class function MakeM(const AKeyValues: array of const): CVariant; overload;
+    class function MakeM(const AKeys, AValues: array of const): CVariant; overload;
     function ToString: string;
     function ToInt: Integer;
 
@@ -87,23 +104,40 @@ type
     property IsEmpty: Boolean read GetIsEmpty;
     property IsFull: Boolean read GetIsFull;
     property Size: Integer read GetSize;
+    property TVarRecType: SmallInt read GetSelfTVarRecType;
   end;
 
-  CIterator = {$IFNDEF DELPHI_HAS_RECORDS} object {$ELSE} record {$ENDIF}
+  CListIterator = {$IFNDEF DELPHI_HAS_RECORDS} object {$ELSE} record {$ENDIF}
+  private
+    FList, FIterator: IUnknown;
+    FPosition: Integer;
+    function GetList: CVariant;
+  public
+    constructor Create(const AList: CVariant);
+    destructor Destroy;
+    function Next(out Key: Integer; out Value: CVariant): Boolean;
+    function NextKey(out Key: Integer): Boolean;
+    function NextValue(out Value: CVariant): Boolean;
+    property List: CVariant read GetList;
+  end;
+
+  CMapIterator = {$IFNDEF DELPHI_HAS_RECORDS} object {$ELSE} record {$ENDIF}
   private
     FMap, FIterator: IUnknown;
+    function GetMap: CVariant;
   public
-    constructor Create(const Map: CVariant);
+    constructor Create(const AMap: CVariant);
     destructor Destroy;
     function Next(out Key: string; out Value: CVariant): Boolean;
     function NextKey(out Key: string): Boolean;
     function NextValue(out Value: CVariant): Boolean;
+    property Map: CVariant read GetMap;
   end;
 
 implementation
 
 uses
-  Collections, SysUtils, Variants;
+  Collections, SysUtils, Variants, Math;
 
 class function CVariant.VariantToRef(const Obj: Variant): IUnknown;
 begin
@@ -132,7 +166,61 @@ begin
   else
     // TODO: custom Variant
     // TODO: Delphi XE2 types
+    // TODO: pointer to something
   end;
+end;
+
+class function CVariant.GetTVarRecType(const Obj: Variant): SmallInt;
+var
+  LIU: IUnknown;
+  LIL: IList;
+  LIM: IMap;
+begin
+  Result := vtVariant;
+  case TVarData(Obj).VType of
+    varEmpty, varNull: Exit;
+    varSmallint: Result := vtInteger;
+    varInteger: Result := vtInteger;
+    varSingle: Result := vtExtended;
+    varDouble: Result := vtExtended;
+    varCurrency: Result := vtExtended;
+    varDate: Result := vtExtended;
+    varOleStr: Result := vtWideString;
+    varDispatch: begin
+      Result := vtInterface;
+      LIU := IDispatch(TVarData(Obj).VDispatch);
+    end;
+    varError: Result := vtInteger;
+    varBoolean: Result := vtBoolean;
+    // varVariant (only references are possible)
+    varUnknown: begin
+      Result := vtInterface;
+      LIU := IUnknown(TVarData(Obj).VUnknown);
+    end;
+    varShortInt: Result := vtInteger;
+    varByte: Result := vtInteger;
+    varWord: Result := vtInteger;
+    varLongWord: Result := vtInteger;
+    varInt64: Result := vtInt64;
+    varString: Result := vtWideString;
+    varArray: // TODO: COM array to Collection sequence
+  else
+    // TODO: custom Variant
+    // TODO: Delphi XE2 types
+    // TODO: pointer to something
+  end;
+  if Result = vtInterface then
+  begin
+    if Supports(LIU, IList, LIL) then
+      Result := vtList
+    else if Supports(LIU, IMap, LIM) then
+      Result := vtMap;
+  end;
+end;
+
+function CVariant.GetSelfTVarRecType: SmallInt;
+begin
+  Result := GetTVarRecType(FObj);
 end;
 
 class function CVariant.ConstToRef(const Obj: TVarRec): IUnknown;
@@ -224,6 +312,57 @@ begin
   FObj := Vrn;
 end;
 
+constructor CVariant.CreateL;
+begin
+  CreateI(TArrayList.create);
+end;
+
+constructor CVariant.CreateL(const AItems: array of const);
+var
+  LIL: IList;
+  i: Integer;
+begin
+  LIL := TArrayList.create(Length(AItems));
+  CreateI(LIL);
+  for i := Low(AItems) to High(AItems) do
+  begin
+    LIL.add(ConstToRef(AItems[i]));
+  end;
+end;
+
+constructor CVariant.CreateM;
+begin
+  CreateI(THashMap.create);
+end;
+
+constructor CVariant.CreateM(const AKeyValues: array of const);
+var
+  LIM: IMap;
+  i: Integer;
+begin
+  LIM := THashMap.create;
+  CreateI(LIM);
+  for i := 0 to Length(AKeyValues) div 2 - 1 do
+  begin
+    LIM.put(ConstToRef(AKeyValues[Low(AKeyValues) + i * 2]),
+            ConstToRef(AKeyValues[Low(AKeyValues) + i * 2 + 1]));
+  end;
+end;
+
+constructor CVariant.CreateM(const AKeys, AValues: array of const);
+var
+  LIM: IMap;
+  i: Integer;
+begin
+  LIM := THashMap.create;
+  CreateI(LIM);
+  for i := 0 to Min(Length(AKeys), Length(AValues)) - 1 do
+  begin
+    LIM.put(ConstToRef(AKeys[Low(AKeys) + i]),
+            ConstToRef(AValues[Low(AValues) + i]));
+  end;
+end;
+
 class function CVariant.MakeDisowned(Obj: TObject): CVariant;
 begin
   Result.FObj := iref(Obj);
@@ -262,6 +401,31 @@ end;
 class function CVariant.MakeV(const Vrn: Variant): CVariant;
 begin
   Result.FObj := Vrn;
+end;
+
+class function CVariant.MakeL: CVariant;
+begin
+  Result.CreateL;
+end;
+
+class function CVariant.MakeL(const AItems: array of const): CVariant;
+begin
+  Result.CreateL(AItems);
+end;
+
+class function CVariant.MakeM: CVariant;
+begin
+  Result.CreateM;
+end;
+
+class function CVariant.MakeM(const AKeyValues: array of const): CVariant;
+begin
+  Result.CreateM(AKeyValues);
+end;
+
+class function CVariant.MakeM(const AKeys, AValues: array of const): CVariant;
+begin
+  Result.CreateM(AKeys, AValues);
 end;
 
 function CVariant.GetAsPVariant: PVariant;
@@ -733,29 +897,29 @@ begin
   LIM := nil;
 end;
 
-constructor CIterator.Create(const Map: CVariant);
+constructor CMapIterator.Create(const AMap: CVariant);
 var
   LIU: IUnknown;
   LIM: IMap;
 begin
-  LIU := Map.GetCollection;
+  LIU := AMap.GetCollection;
 
   if Supports(LIU, IMap, LIM) then
   begin
     FIterator := LIM.keys;
     FMap := LIM;
   end else
-    Map.RaiseNotAnArray;
+    AMap.RaiseNotAnArray;
   LIM := nil;
 end;
 
-destructor CIterator.Destroy;
+destructor CMapIterator.Destroy;
 begin
   FIterator := nil;
   FMap := nil;
 end;
 
-function CIterator.Next(out Key: string; out Value: CVariant): Boolean;
+function CMapIterator.Next(out Key: string; out Value: CVariant): Boolean;
 var
   Next_Key: string;
 begin
@@ -768,13 +932,10 @@ function CIterator.Next(out Key: string; out Value: CVariant): Boolean;
     Value.CreateI(IMap(FMap).Get(Next_Key));
     Result := True;
   end else
-  begin
-    FIterator := nil;
-    FMap := nil;
-  end;
+    Destroy;
 end;
 
-function CIterator.NextKey(out Key: string): Boolean;
+function CMapIterator.NextKey(out Key: string): Boolean;
 var
   Next_Key: string;
 begin
@@ -789,7 +950,7 @@ var
     Destroy;
 end;
 
-function CIterator.NextValue(out Value: CVariant): Boolean;
+function CMapIterator.NextValue(out Value: CVariant): Boolean;
 var
   Next_Key: string;
 begin
@@ -803,5 +964,78 @@ var
   end else
     Destroy;
 end;
+
+function CMapIterator.GetMap: CVariant;
+begin
+  Result.CreateI(FMap);
+end;
+
+constructor CListIterator.Create(const AList: CVariant);
+var
+  LIU: IUnknown;
+  LIL: IList;
+begin
+  LIU := AList.GetCollection;
+
+  if Supports(LIU, IList, LIL) then
+  begin
+    FIterator := LIL.iterator;
+    FList := LIL;
+    FPosition := 0;
+  end else
+    AList.RaiseNotAnArray;
+  LIL := nil;
+end;
+
+destructor CListIterator.Destroy;
+begin
+  FList := nil; FIterator := nil; FPosition := 0;
+end;
+
+function CListIterator.Next(out Key: Integer; out Value: CVariant): Boolean;
+begin
+  Result := False;
+  if not Assigned(FIterator) then Exit;
+  if IIterator(FIterator).hasNext then
+  begin
+    Key := FPosition;
+    Inc(FPosition);
+    Value.CreateI(IIterator(FIterator).next);
+    Result := True;
+  end else
+    Destroy;
+end;
+
+function CListIterator.NextKey(out Key: Integer): Boolean;
+begin
+  Result := False;
+  if not Assigned(FIterator) then Exit;
+  if IIterator(FIterator).hasNext then
+  begin
+    Key := FPosition;
+    Inc(FPosition);
+    IIterator(FIterator).next;
+    Result := True;
+  end else
+    Destroy;
+end;
+
+function CListIterator.NextValue(out Value: CVariant): Boolean;
+begin
+  Result := False;
+  if not Assigned(FIterator) then Exit;
+  if IIterator(FIterator).hasNext then
+  begin
+    Inc(FPosition);
+    Value.CreateI(IIterator(FIterator).next);
+    Result := True;
+  end else
+    Destroy;
+end;
+
+function CListIterator.GetList: CVariant;
+begin
+  Result.CreateI(FList);
+end;
 
 end.

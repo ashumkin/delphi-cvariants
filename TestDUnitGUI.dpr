@@ -42,12 +42,13 @@
 program TestDUnitGUI;
 uses
   SysUtils,
-{$IFDEF DUNIT_CLX}
+  {$IFDEF DUNIT_CLX}
   QGUITestRunner,
-{$ELSE}
+  {$ELSE}
   GUITestRunner,
-{$ENDIF}
-  CollectionsTests in 'CollectionsTests.pas';
+  {$ENDIF}
+  CollectionsTests in 'CollectionsTests.pas',
+  CVariantTests in 'CVariantTests.pas';
 
 {$R *.res}
 

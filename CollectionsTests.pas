@@ -36,8 +36,7 @@ interface
 uses
    SysUtils,
    TestFramework,
-   Collections,
-   CVariants;
+   Collections;
 
 type
   TListTests = class(TTestCase)
@@ -461,10 +460,10 @@ begin
 end;
 
 initialization
-  RegisterTests('',       [TListTests.Suite,
-                          TMapTests.Suite,
-                          TSetTests.Suite,
-                          THeapTests.Suite
-                          ]);
-
+  RegisterTests('dUnit-collections',
+    [TListTests.Suite,
+     TMapTests.Suite,
+     TSetTests.Suite,
+     THeapTests.Suite
+    ]);
 end.
