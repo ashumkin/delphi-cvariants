@@ -67,6 +67,7 @@ type
     procedure CreateM(const AKeyValues: array of const); overload;
     procedure CreateM(const AKeys, AValues: array of const); overload;
     function Clone: CVariant;
+    procedure Overlay(const OverlayObj: CVariant); // only maps are merged
     function ToString: UnicodeString;
     function ToInt: Integer;
     function ToBool: Boolean;
@@ -467,6 +468,28 @@ begin
   else
     Result := Self;
   end;
+end;
+
+procedure CVariant.Overlay(const OverlayObj: CVariant);
+var
+  OI: CMapIterator;
+  Item: CVariant;
+begin
+  if (VType = vtMap) and (OverlayObj.VType = vtMap) then
+  begin
+    OI.Create(OverlayObj);
+    while OI.Next do
+    begin
+      Item := Get([OI.Key]);
+      if Item.VType <> vtNull then
+      begin
+        Item.Overlay(OI.Value);
+        Put([OI.Key], Item);
+      end else
+        Put([OI.Key], OI.Value);
+    end;
+  end else
+    Self := OverlayObj.Clone;
 end;
 
 function CVarOwned(Obj: TObject): CVariant;
