@@ -40,6 +40,7 @@ type
   published
     procedure TestItemAccess;
     procedure TestNullValues;
+    procedure TestListIterator;
   end;
 
 implementation
@@ -156,6 +157,33 @@ begin
   CheckEquals(7,          F.Get(['SubMap', 'qx']).ToInt,  'F[''SubMap'', ''qx'']');
   CheckEquals(vtBoolean,  F.VTypeDeep(['SubMap', 'ow']),  'F[''ow''] is Boolean');
   CheckEquals(False,      F.Get(['SubMap', 'ow']).ToBool, 'F[''SubMap'', ''ow'']');
+end;
+
+procedure TDeepTests.TestListIterator;
+var
+  LI: CListIterator;
+begin
+  LI.Create(F.Get(['List']));
+  CheckTrue(LI.Next, 'F[''List'', 0]');
+  CheckEquals(0, LI.Key, 'Key');
+  CheckEquals(vtInteger, LI.Value.VType, 'F[''List'', 0] is Integer');
+  CheckEquals(34, LI.Value.ToInt, 'F[''List'', 0]');
+  CheckTrue(LI.Next, 'F[''List'', 1]');
+  CheckEquals(1, LI.Key, 'Key');
+  CheckEquals(vtInteger, LI.Value.VType, 'F[''List'', 1] is Integer');
+  CheckEquals(40, LI.Value.ToInt, 'F[''List'', 1]');
+  CheckTrue(LI.Next, 'F[''List'', 2]');
+  CheckEquals(2, LI.Key, 'Key');
+  CheckEquals(vtString, LI.Value.VType, 'F[''List'', 2] is string');
+  CheckEquals('', LI.Value.ToString, 'F[''List'', 2]');
+  CheckTrue(LI.Next, 'F[''List'', 3]');
+  CheckEquals(3, LI.Key, 'Key');
+  CheckEquals(vtString, LI.Value.VType, 'F[''List'', 3] is string');
+  CheckEquals('listitem', LI.Value.ToString, 'F[''List'', 3]');
+  CheckTrue(LI.Next, 'F[''List'', 4]');
+  CheckEquals(4, LI.Key, 'Key');
+  CheckEquals(vtEmpty, LI.Value.VType, 'F[''List'', 1] is Empty');
+  CheckFalse(LI.Next, 'F[''List'', 5]');
 end;
 
 procedure TDeepTests.TestNullValues;

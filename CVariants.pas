@@ -109,12 +109,12 @@ type
     FPosition: Integer;
     function GetList: CVariant;
   public
+    Key: Integer;
+    Value: CVariant;
     constructor Create(const AList: CVariant);
     destructor Destroy;
-    function Next(out Key: Integer; out Value: CVariant): Boolean;
-    function NextKey(out Key: Integer): Boolean;
-    function NextValue(out Value: CVariant): Boolean;
-    property List: CVariant read GetList;
+    function Next: Boolean;
+    property List: CVariant read GetList;
   end;
 
   CMapIterator = {$IFNDEF DELPHI_HAS_RECORDS} object {$ELSE} record {$ENDIF}
@@ -122,12 +122,12 @@ type
     FMap, FIterator: IUnknown;
     function GetMap: CVariant;
   public
+    Key: string;
+    Value: CVariant;
     constructor Create(const AMap: CVariant);
     destructor Destroy;
-    function Next(out Key: string; out Value: CVariant): Boolean;
-    function NextKey(out Key: string): Boolean;
-    function NextValue(out Value: CVariant): Boolean;
-    property Map: CVariant read GetMap;
+    function Next: Boolean;
+    property Map: CVariant read GetMap;
   end;
 
 function CVarOwned(Obj: TObject): CVariant; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
@@ -1050,6 +1050,8 @@ begin
   begin
     FIterator := LIM.keys;
     FMap := LIM;
+    Key := '';
+    Value.Destroy;
   end else
     AMap.RaiseNotAnArray;
   LIM := nil;
@@ -1059,9 +1061,11 @@ destructor CMapIterator.Destroy;
 begin
   FIterator := nil;
   FMap := nil;
+  Key := '';
+  Value.Destroy;
 end;
 
-function CMapIterator.Next(out Key: string; out Value: CVariant): Boolean;
+function CMapIterator.Next: Boolean;
 var
   Next_Key: string;
 begin
@@ -1074,37 +1078,7 @@ function CMapIterator.Next(out Key: string; out Value: CVariant): Boolean;
     Value.CreateI(IMap(FMap).Get(Next_Key), False);
     Result := True;
   end else
-    Destroy;
-end;
-
-function CMapIterator.NextKey(out Key: string): Boolean;
-var
-  Next_Key: string;
-begin
-  Result := False;
-  if not Assigned(FIterator) then Exit;
-  if IIterator(FIterator).hasNext then
-  begin
-    Next_Key := IIterator(FIterator).nextStr;
-    Key := Next_Key;
-    Result := True;
-  end else
-    Destroy;
-end;
-
-function CMapIterator.NextValue(out Value: CVariant): Boolean;
-var
-  Next_Key: string;
-begin
-  Result := False;
-  if not Assigned(FIterator) then Exit;
-  if IIterator(FIterator).hasNext then
-  begin
-    Next_Key := IIterator(FIterator).nextStr;
-    Value.CreateI(IMap(FMap).Get(Next_Key), False);
-    Result := True;
-  end else
-    Destroy;
+    FIterator := nil;
 end;
 
 function CMapIterator.GetMap: CVariant;
@@ -1124,6 +1098,7 @@ begin
     FIterator := LIL.iterator;
     FList := LIL;
     FPosition := 0;
+    Key := 0; Value.Destroy;
   end else
     AList.RaiseNotAnArray;
   LIL := nil;
@@ -1132,9 +1107,10 @@ end;
 destructor CListIterator.Destroy;
 begin
   FList := nil; FIterator := nil; FPosition := 0;
+  Key := 0; Value.Destroy;
 end;
 
-function CListIterator.Next(out Key: Integer; out Value: CVariant): Boolean;
+function CListIterator.Next: Boolean;
 begin
   Result := False;
   if not Assigned(FIterator) then Exit;
@@ -1148,34 +1124,7 @@ begin
     Destroy;
 end;
 
-function CListIterator.NextKey(out Key: Integer): Boolean;
-begin
-  Result := False;
-  if not Assigned(FIterator) then Exit;
-  if IIterator(FIterator).hasNext then
-  begin
-    Key := FPosition;
-    Inc(FPosition);
-    IIterator(FIterator).next;
-    Result := True;
-  end else
-    Destroy;
-end;
-
-function CListIterator.NextValue(out Value: CVariant): Boolean;
-begin
-  Result := False;
-  if not Assigned(FIterator) then Exit;
-  if IIterator(FIterator).hasNext then
-  begin
-    Inc(FPosition);
-    Value.CreateI(IIterator(FIterator).next, False);
-    Result := True;
-  end else
-    Destroy;
-end;
-
-function CListIterator.GetList: CVariant;
+function CListIterator.GetList: CVariant;
 begin
   Result.CreateI(FList);
 end;
