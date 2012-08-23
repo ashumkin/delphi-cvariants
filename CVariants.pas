@@ -82,6 +82,7 @@ type
     function IsEmptyDeep(const Indices: array of const): Boolean;
     function IsFullDeep(const Indices: array of const): Boolean;
     function SizeDeep(const Indices: array of const): Integer;
+    function VTypeDeep(const Indices: array of const): SmallInt;
 
     function HasKey(const Key: string): Boolean;
 
@@ -181,8 +182,6 @@ end;
 class function CVariant.GetTVarRecType(const Obj: Variant): SmallInt;
 var
   LIU: IUnknown;
-  LIL: IList;
-  LIM: IMap;
 begin
   Result := vtVariant;
   case TVarData(Obj).VType of
@@ -219,9 +218,9 @@ begin
   end;
   if Result = vtInterface then
   begin
-    if Supports(LIU, IList, LIL) then
+    if Supports(LIU, IList) then
       Result := vtList
-    else if Supports(LIU, IMap, LIM) then
+    else if Supports(LIU, IMap) then
       Result := vtMap;
   end;
 end;
@@ -229,6 +228,29 @@ end;
 function CVariant.GetVType: SmallInt;
 begin
   Result := GetTVarRecType(FObj);
+end;
+
+function CVariant.VTypeDeep(const Indices: array of const): SmallInt;
+var
+  LIU: IUnknown;
+  LIO: IObject;
+begin
+  if Length(Indices) <= 0 then
+    Result := GetVType
+  else
+  begin
+    LIU := GetDeepItem(Indices);
+    Result := vtInterface;
+
+    if Supports(LIU, IObject, LIO) then
+    begin
+      Result := LIO.delphiType;
+      if Supports(LIU, IList) then
+        Result := vtList
+      else if Supports(LIU, IMap) then
+        Result := vtMap;
+    end;
+  end;
 end;
 
 class function CVariant.ConstToRef(const Obj: TVarRec): IUnknown;
