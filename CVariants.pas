@@ -66,6 +66,7 @@ type
     procedure CreateM; overload;
     procedure CreateM(const AKeyValues: array of const); overload;
     procedure CreateM(const AKeys, AValues: array of const); overload;
+    function Clone: CVariant;
     function ToString: UnicodeString;
     function ToInt: Integer;
     function ToBool: Boolean;
@@ -79,9 +80,19 @@ type
     procedure Remove(const Indices: array of const);
     procedure Insert(const Indices: array of const; const NewObj: CVariant); overload;
     procedure Insert(const IndicesAndObj: array of const); overload;
+    procedure InsertList(const Indices: array of const; const NewList: CVariant); overload;
+    procedure InsertList(const Indices: array of const; const NewList: array of const); overload;
     procedure Append(const Indices: array of const; const NewObj: CVariant); overload;
     procedure Append(const IndicesAndObj: array of const); overload;
     procedure Append(const NewObj: CVariant); overload;
+    procedure AppendList(const Indices: array of const; const NewList: CVariant); overload;
+    procedure AppendList(const Indices, NewList: array of const); overload;
+    procedure AppendList(const NewList: CVariant); overload;
+    procedure AppendList(const NewList: array of const); overload;
+    procedure MergeMap(const Indices: array of const; const NewMap: CVariant); overload;
+    procedure MergeMap(const Indices: array of const; const AKeyValues: array of const); overload;
+    procedure MergeMap(const NewMap: CVariant); overload;
+    procedure MergeMap(const AKeyValues: array of const); overload;
 
     procedure Clear(const Indices: array of const); overload; // makes collection empty without destroying
     procedure Clear; overload; // makes collection empty without destroying
@@ -440,6 +451,19 @@ begin
   end;
 end;
 
+function CVariant.Clone: CVariant;
+begin
+  case VType of
+    vtList:
+      begin
+        // TODO: Clone
+      end;
+    vtMap:
+  else
+    Result.CreateV(FObj);
+  end;
+end;
+
 function CVarOwned(Obj: TObject): CVariant;
 begin
   Result.FObj := iown(Obj);
@@ -736,6 +760,78 @@ begin
   LIL := nil; LIM := nil;
 end;
 
+procedure CVariant.MergeMap(const Indices: array of const; const NewMap: CVariant);
+var
+  LIU: IUnknown;
+  LIM: IMap;
+  NMI: CMapIterator;
+begin
+  LIU := GetDeepItem(Indices);
+
+  if Supports(LIU, IMap, LIM) then
+  begin
+    NMI.Create(NewMap);
+    while NMI.Next do
+      LIM.put(iref(NMI.Key), VariantToRef(NMI.Value.FObj));
+  end else
+    RaiseNotAnArray;
+  LIM := nil;
+end;
+
+procedure CVariant.MergeMap(const Indices, AKeyValues: array of const);
+var
+  LIU: IUnknown;
+  LIM: IMap;
+  i: Integer;
+begin
+  LIU := GetDeepItem(Indices);
+
+  if Supports(LIU, IMap, LIM) then
+  for i := 0 to Length(AKeyValues) div 2 - 1 do
+  begin
+    LIM.put(ConstToRef(AKeyValues[Low(AKeyValues) + i * 2]),
+            ConstToRef(AKeyValues[Low(AKeyValues) + i * 2 + 1]));
+  end else
+    RaiseNotAnArray;
+  LIM := nil;
+end;
+
+procedure CVariant.MergeMap(const NewMap: CVariant);
+var
+  LIU: IUnknown;
+  LIM: IMap;
+  NMI: CMapIterator;
+begin
+  LIU := GetCollection;
+
+  if Supports(LIU, IMap, LIM) then
+  begin
+    NMI.Create(NewMap);
+    while NMI.Next do
+      LIM.put(iref(NMI.Key), VariantToRef(NMI.Value.FObj));
+  end else
+    RaiseNotAnArray;
+  LIM := nil;
+end;
+
+procedure CVariant.MergeMap(const AKeyValues: array of const);
+var
+  LIU: IUnknown;
+  LIM: IMap;
+  i: Integer;
+begin
+  LIU := GetCollection;
+
+  if Supports(LIU, IMap, LIM) then
+  for i := 0 to Length(AKeyValues) div 2 - 1 do
+  begin
+    LIM.put(ConstToRef(AKeyValues[Low(AKeyValues) + i * 2]),
+            ConstToRef(AKeyValues[Low(AKeyValues) + i * 2 + 1]));
+  end else
+    RaiseNotAnArray;
+  LIM := nil;
+end;
+
 procedure CVariant.Remove(const Indices: array of const);
 var
   LIU: IUnknown;
@@ -798,6 +894,50 @@ begin
   LIL := nil; LIM := nil;
 end;
 
+procedure CVariant.InsertList(const Indices: array of const; const NewList: CVariant);
+var
+  LIU: IUnknown;
+  LIL: IList;
+  NLI: CListIterator;
+  i: Integer;
+begin
+  LIU := GetDeepParent(Indices);
+
+  if Supports(LIU, IList, LIL) then
+  begin
+    if Indices[High(Indices)].VType <> vtInteger then
+      raise EVariantInvalidArgError.Create(Collections.stringOf(LIL));
+    NLI.Create(NewList); i := Indices[High(Indices)].VInteger;
+    while NLI.Next do
+    begin
+      LIL.insert(i, VariantToRef(NLI.Value.FObj));
+      Inc(i);
+    end;
+  end else
+    RaiseNotAnArray;
+  LIL := nil;
+end;
+
+procedure CVariant.InsertList(const Indices: array of const; const NewList: array of const);
+var
+  LIU: IUnknown;
+  LIL: IList;
+  i, j: Integer;
+begin
+  LIU := GetDeepParent(Indices);
+
+  if Supports(LIU, IList, LIL) then
+  begin
+    if Indices[High(Indices)].VType <> vtInteger then
+      raise EVariantInvalidArgError.Create(Collections.stringOf(LIL));
+    j := Indices[High(Indices)].VInteger;
+    for i := 0 to Length(NewList) - 1 do
+      LIL.insert(j + i, ConstToRef(NewList[Low(NewList) + i]));
+  end else
+    RaiseNotAnArray;
+  LIL := nil;
+end;
+
 procedure CVariant.Append(const Indices: array of const; const NewObj: CVariant);
 var
   LIU: IUnknown;
@@ -838,6 +978,76 @@ begin
   if Supports(LIU, IList, LIL) then
     LIL.add(VariantToRef(NewObj.FObj))
   else
+    RaiseNotAnArray;
+  LIL := nil;
+end;
+
+procedure CVariant.AppendList(const Indices: array of const; const NewList: CVariant);
+var
+  LIU: IUnknown;
+  LIL: IList;
+  NLI: CListIterator;
+begin
+  LIU := GetDeepItem(Indices);
+
+  if Supports(LIU, IList, LIL) then
+  begin
+    NLI.Create(NewList);
+    while NLI.Next do
+      LIL.add(VariantToRef(NLI.Value.FObj));
+  end else
+    RaiseNotAnArray;
+  LIL := nil;
+end;
+
+procedure CVariant.AppendList(const Indices, NewList: array of const);
+var
+  LIU: IUnknown;
+  LIL: IList;
+  i: Integer;
+begin
+  LIU := GetDeepItem(Indices);
+
+  if Supports(LIU, IList, LIL) then
+  begin
+    for i := Low(NewList) to High(NewList) do
+      LIL.add(ConstToRef(NewList[i]));
+  end else
+    RaiseNotAnArray;
+  LIL := nil;
+end;
+
+procedure CVariant.AppendList(const NewList: CVariant);
+var
+  LIU: IUnknown;
+  LIL: IList;
+  NLI: CListIterator;
+begin
+  LIU := GetCollection;
+
+  if Supports(LIU, IList, LIL) then
+  begin
+    NLI.Create(NewList);
+    while NLI.Next do
+      LIL.add(VariantToRef(NLI.Value.FObj));
+  end else
+    RaiseNotAnArray;
+  LIL := nil;
+end;
+
+procedure CVariant.AppendList(const NewList: array of const);
+var
+  LIU: IUnknown;
+  LIL: IList;
+  i: Integer;
+begin
+  LIU := GetCollection;
+
+  if Supports(LIU, IList, LIL) then
+  begin
+    for i := Low(NewList) to High(NewList) do
+      LIL.add(ConstToRef(NewList[i]));
+  end else
     RaiseNotAnArray;
   LIL := nil;
 end;

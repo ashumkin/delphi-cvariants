@@ -1,5 +1,4 @@
 syntax: glob
-*.~??
 *.cfg
 *.dof
 *.res
@@ -10,5 +9,6 @@ syntax: glob
 dunit.ini
 __history/*
 *.dproj.local
-*.ico
 *.tvsconfig
+*.~*
+*.identcache
