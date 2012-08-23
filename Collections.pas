@@ -32,11 +32,17 @@ interface
 uses
   SysUtils,
   Classes,
-  Math;
+  Math,
+  Variants;
 
 const
   rcs_id :string = '@(#)$Id: Collections.pas,v 1.10 2001/10/23 03:55:20 juanco Exp $';
 
+  vtList  = -40;
+  vtMap   = -41;
+  vtEmpty = -42;
+  vtNull  = -43;
+  
 {$WARN UNSAFE_TYPE OFF}
 {$WARN UNSAFE_CAST OFF}
 
@@ -51,8 +57,8 @@ type
   end;
 
   InternalError                   = class(CollectionException);
-  IllegalArgumentException        = class(CollectionException);
-  NoSuchElementException          = class(CollectionException);
+  IllegalArgumentException        = EVariantInvalidArgError;
+  NoSuchElementException          = EVariantBadIndexError;
   IllegalStateException           = class(CollectionException);
   ConcurrentModificationException = class(CollectionException);
   CloneNotSupportedException      = class(CollectionException);
@@ -67,7 +73,7 @@ type
      function hash :Longint;
      function toString :string;
      function instanceOf(const iid :TGUID) :boolean;
-     function delphiType: Byte; // vt* constants
+     function VType: SmallInt; // vt* constants
   end;
 
   IDelphiObject = interface(IObject)
@@ -328,7 +334,7 @@ type
      function toString :string;             virtual;
      function clone    :IUnknown;           virtual;
      function instanceOf(const iid :TGUID) :boolean;   virtual;
-     function delphiType: Byte;             virtual; // vt* constants
+     function VType: SmallInt;             virtual; // vt* constants
   end;
 
   TReference = class(TAbstractObject, IVariant, IReference, IComparable)
@@ -348,10 +354,15 @@ type
     function boolValue :boolean;
   end;
 
+  TEmptyReference = class(TReference)
+  public
+     function VType: SmallInt;             override;
+  end;
+
   TOwnerReference = class(TReference)
   public
      destructor Destroy; override;
-     function delphiType: Byte;             override;
+     function VType: SmallInt;             override;
   end;
 
   TStrReference = class(TAbstractObject, IVariant, IComparable, IString)
@@ -364,7 +375,7 @@ type
     function hash :longint;                       override;
     function toString :string;                    override;
     function compareTo(other :IUnknown) :Integer; virtual;
-    function delphiType: Byte;                    override;
+    function VType: SmallInt;                    override;
 
     function intValue    :integer;
     function longValue   :longint;
@@ -381,7 +392,7 @@ type
     function hash :longint;               override;
     function toString :string;            override;
     function compareTo(other :IUnknown) :Integer; virtual;
-    function delphiType: Byte;             override;
+    function VType: SmallInt;             override;
 
     function intValue    :integer;
     function longValue   :longint;
@@ -398,7 +409,7 @@ type
     function hash :longint;                override;
     function toString :string;             override;
     function compareTo(other :IUnknown) :Integer; virtual;
-    function delphiType: Byte;             override;
+    function VType: SmallInt;             override;
 
     function intValue    :integer;
     function longValue   :longint;
@@ -415,7 +426,7 @@ type
     function hash :longint;               override;
     function toString :string;            override;
     function compareTo(other :IUnknown) :Integer; virtual;
-    function delphiType: Byte;             override;
+    function VType: SmallInt;             override;
 
     function intValue    :integer;
     function longValue   :longint;
@@ -432,7 +443,7 @@ type
     function hash :longint;               override;
     function toString :string;            override;
     function compareTo(other :IUnknown) :Integer; virtual;
-    function delphiType: Byte;             override;
+    function VType: SmallInt;             override;
 
     function intValue    :integer;
     function longValue   :longint;
@@ -489,6 +500,7 @@ type
       function remove(index :integer):IUnknown;    overload; virtual;
       function indexOf(obj :IUnknown; from :integer = 0) :integer; virtual;
       function lastIndexOf(obj :IUnknown) :integer;                virtual;
+      function VType: SmallInt;                    override;
 
       procedure put(index :Integer; item :IUnknown); overload; virtual; abstract;
       procedure insert(index :Integer; item :IUnknown); overload; virtual; abstract;
@@ -655,6 +667,7 @@ type
 
   TAbstractMap = class(TAbstractObject, IMap)
   public
+      function  VType: SmallInt;                      override;
       function  put(key, value:IUnknown):IUnknown;    overload; virtual; abstract;
       function  get(key:IUnknown):IUnknown;           overload; virtual;
       function  remove(key :IUnknown):IUnknown;       overload; virtual; abstract;
@@ -968,6 +981,7 @@ type
   function ilong(lng :longint) :INumber;
   function iref(dbl :double)   :INumber;     overload;
   function iref(bol :boolean)  :INumber;     overload;
+  function iempty: IObject;
 
   function compare(i1, i2 :longint)      :integer;  overload;
   function compare(k1, k2 :IUnknown)     :integer;  overload;
@@ -1018,6 +1032,11 @@ end;
 function iref(bol :boolean)  :INumber;
 begin
    result := TBoolReference.create(bol);
+end;
+
+function iempty: IObject;
+begin
+   result := TEmptyReference.create(nil);
 end;
 
 function compare(i1, i2: longint): integer;
@@ -1213,6 +1232,13 @@ begin
   result := Longint(Pointer(_obj))
 end;
 
+{ TEmptyReference }
+
+function TEmptyReference.VType: SmallInt;
+begin
+  Result := vtEmpty;
+end;
+
 { TOwnerReference }
 
 destructor TOwnerReference.Destroy;
@@ -1221,7 +1247,7 @@ begin
   inherited Destroy
 end;
 
-function TOwnerReference.delphiType: Byte;
+function TOwnerReference.VType: SmallInt;
 begin
   Result := vtObject;
 end;
@@ -1263,7 +1289,7 @@ begin
   result := GetInterfaceEntry(iid) <> nil;
 end;
 
-function TAbstractObject.delphiType: Byte;
+function TAbstractObject.VType: SmallInt;
 begin
   Result := vtInterface;
 end;
@@ -1340,7 +1366,7 @@ begin
    result := _str
 end;
 
-function TStrReference.delphiType: Byte;
+function TStrReference.VType: SmallInt;
 begin
   Result := vtWideString;
 end;
@@ -1405,7 +1431,7 @@ begin
   result := _int <> 0
 end;
 
-function TIntReference.delphiType: Byte;
+function TIntReference.VType: SmallInt;
 begin
   Result := vtInteger;
 end;
@@ -1484,7 +1510,7 @@ begin
   result := _dbl <> 0.0
 end;
 
-function TDoubleReference.delphiType: Byte;
+function TDoubleReference.VType: SmallInt;
 begin
   Result := vtExtended;
 end;
@@ -1563,7 +1589,7 @@ begin
    result := _long <> 0
 end;
 
-function TLongReference.delphiType: Byte;
+function TLongReference.VType: SmallInt;
 begin
   Result := vtInteger;
 end;
@@ -1637,7 +1663,7 @@ begin
      result := '';
 end;
 
-function TBoolReference.delphiType: Byte;
+function TBoolReference.VType: SmallInt;
 begin
   Result := vtBoolean;
 end;
@@ -1793,7 +1819,7 @@ begin
   i := self.iterator;
   for n := 0 to index-1 do
       if not i.hasNext then
-         raise NoSuchelementException.create
+         raise NoSuchelementException.create('index out of bounds')
       else
          i.next;
   result := i.next
@@ -1836,6 +1862,11 @@ begin
       result := n;
     inc(n);
   end;
+end;
+
+function TAbstractList.VType: SmallInt;
+begin
+  Result := vtList;
 end;
 
 function TAbstractList.equals(o :IUnknown): boolean;
@@ -2020,12 +2051,12 @@ var
   n :Integer;
 begin
   if index < 0 then
-     raise IllegalArgumentException.create;
+     raise IllegalArgumentException.create('Index is invalid');
 
   result := self._head;
   for n := 0 to index do begin
      if result.next = _head then
-         raise NoSuchElementException.create;
+         raise NoSuchElementException.create('Index out of bounds');
      result := result.next
   end
 end;
@@ -2033,7 +2064,7 @@ end;
 procedure TLinkedList.removeEntry(e: IListEntry);
 begin
   if e = _head then
-     raise IllegalArgumentException.create;
+     raise IllegalArgumentException.create('Index out of bounds');
   e.disconnect
 end;
 
@@ -2261,8 +2292,10 @@ function TArrayList.remove(index: integer): IUnknown;
 var
   i :integer;
 begin
-   if (index < 0) or (index >= size) then
-      raise IllegalArgumentException.create;
+   if index < 0 then
+      raise IllegalArgumentException.create('Invalid index')
+   else if index >= size then
+      raise NoSuchElementException.create('Index out of bounds');
    try
       result := _list[index];
       _list[index] := nil; // important for refcounting
@@ -2276,8 +2309,10 @@ end;
 
 procedure TArrayList.put(index: Integer; item: IUnknown);
 begin
-  if (index < 0) or (index > size) then
-     raise IllegalArgumentException.create;
+   if index < 0 then
+      raise IllegalArgumentException.create('Invalid index')
+   else if index > size then
+      raise NoSuchElementException.create('Index out of bounds');
   _list[index] := item
 end;
 
@@ -2285,8 +2320,10 @@ procedure TArrayList.insert(index :Integer; item :IUnknown);
 var
   i :Integer;
 begin
-  if (index < 0) or (index > size) then
-     raise IllegalArgumentException.create;
+  if index < 0 then
+    raise IllegalArgumentException.create('Invalid index')
+  else if index > size then
+    raise NoSuchElementException.create('Index out of bounds');
   grow;
   for i := index to size-1 do
     _list[i+1] := _list[i];
@@ -2426,6 +2463,11 @@ begin
   inherited create;
 end;
 
+function TAbstractMap.VType: SmallInt;
+begin
+  Result := vtMap;
+end;
+
 function TAbstractMap.get(key: IUnknown): IUnknown;
 var
   e :IMapEntry;
@@ -2493,7 +2535,7 @@ end;
 class function TAbstractMap.key(e :IMapEntry) :IUnknown;
 begin
     if (e=nil) then
-       raise NoSuchElementException.create;
+       raise NoSuchElementException.create('key is nil');
     result := e.key;
 end;
 
@@ -3976,9 +4018,9 @@ end;
 function TTreeIterator.next :IUnknown;
 begin
     if (_next = _firstExcluded) then
-        raise NoSuchElementException.create;
+        raise NoSuchElementException.create('No such element');
     if (_myMap._modCount <> _expectedModCount) then
-        raise ConcurrentModificationException.create;
+        raise ConcurrentModificationException.create('Concurrent modification');
 
     _lastReturned := _next;
     _next := _myMap.successor(_next);

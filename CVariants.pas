@@ -2,6 +2,9 @@ unit CVariants;
 
 interface
 
+uses
+  Collections;
+
 {$INCLUDE 'CVariantDelphiFeatures.inc'}
 
 {$WARN UNSAFE_TYPE OFF}
@@ -9,8 +12,10 @@ interface
 {$WARN UNSAFE_CAST OFF}
 
 const
-  vtList = -40;
-  vtMap  = -41;
+  vtList  = Collections.vtList;
+  vtMap   = Collections.vtMap;
+  vtEmpty = Collections.vtEmpty;
+  vtNull  = Collections.vtNull;
 
 type
   {$IFNDEF DELPHI_IS_UNICODE}
@@ -24,11 +29,11 @@ type
   private
     FObj: Variant;
 
-    constructor CreateI(const Int: IUnknown);
+    constructor CreateI(const Int: IUnknown; NilToNull: Boolean = True);
     class function VariantToRef(const Obj: Variant): IUnknown;
     class function ConstToRef(const Obj: TVarRec): IUnknown;
     class function GetTVarRecType(const Obj: Variant): SmallInt;
-    class function MakeI(const Int: IUnknown): CVariant; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
+    class function MakeI(const Int: IUnknown; NilToNull: Boolean = True): CVariant; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
     function GetAsPVariant: PVariant; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
     function GetHash: Integer;
 
@@ -49,6 +54,7 @@ type
     function GetSize: Integer;
   public
     destructor Destroy; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
+    constructor CreateNull; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
     constructor CreateOwned(Obj: TObject); {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
     constructor Create(Obj: TObject); overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
     constructor Create(const Str: string);  overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
@@ -125,6 +131,7 @@ type
 
 function CVarOwned(Obj: TObject): CVariant; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
 function CVarEmpty: CVariant; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
+function CVarNull: CVariant; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
 function CVar(Obj: TObject): CVariant; overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
 function CVar(const Str: string): CVariant;  overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
 function CVar(Int: Integer): CVariant; overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
@@ -146,13 +153,14 @@ function VarM(const AKeys, AValues: array of const): Variant; overload;
 implementation
 
 uses
-  Collections, SysUtils, Variants, Math;
+  SysUtils, Variants, Math;
 
 class function CVariant.VariantToRef(const Obj: Variant): IUnknown;
 begin
   Result := nil;
   case TVarData(Obj).VType of
-    varEmpty, varNull: Exit;
+    varEmpty: Result := iempty;
+    varNull: Exit;
     varSmallint: Result := iref(TVarData(Obj).VSmallInt);
     varInteger: Result := iref(TVarData(Obj).VInteger);
     varSingle: Result := iref(TVarData(Obj).VSingle);
@@ -185,7 +193,8 @@ var
 begin
   Result := vtVariant;
   case TVarData(Obj).VType of
-    varEmpty, varNull: Exit;
+    varEmpty: Result := vtEmpty;
+    varNull: Result := vtNull;
     varSmallint: Result := vtInteger;
     varInteger: Result := vtInteger;
     varSingle: Result := vtExtended;
@@ -218,7 +227,9 @@ begin
   end;
   if Result = vtInterface then
   begin
-    if Supports(LIU, IList) then
+    if not Assigned(LIU) then
+      Result := vtEmpty
+    else if Supports(LIU, IList) then
       Result := vtList
     else if Supports(LIU, IMap) then
       Result := vtMap;
@@ -238,18 +249,27 @@ begin
   if Length(Indices) <= 0 then
     Result := GetVType
   else
-  begin
+  try
     LIU := GetDeepItem(Indices);
     Result := vtInterface;
 
-    if Supports(LIU, IObject, LIO) then
+    if not Assigned(LIU) then
+      Result := vtEmpty
+    else if Supports(LIU, IObject, LIO) then
     begin
-      Result := LIO.delphiType;
+      Result := LIO.VType;
       if Supports(LIU, IList) then
         Result := vtList
       else if Supports(LIU, IMap) then
         Result := vtMap;
     end;
+  except
+    on EVariantNotAnArrayError do
+      Result := vtNull;
+    on EVariantInvalidArgError do
+      Result := vtNull;
+    on EVariantBadIndexError do
+      Result := vtNull;
   end;
 end;
 
@@ -269,21 +289,34 @@ begin
     vtAnsiString: Result := iref(AnsiString(Obj.VAnsiString));
     vtCurrency: Result := iref(Obj.VCurrency^);
     vtVariant: Result := VariantToRef(Obj.VVariant^);
-    vtInterface: Result := IUnknown(Obj.VInterface);
+    vtInterface:
+      if Assigned(Obj.VInterface) then
+        Result := IUnknown(Obj.VInterface)
+      else
+        Result := iempty;
     vtWideString: Result := iref(WideString(Obj.VWideString));
     vtInt64: Result := iref(Obj.VInt64^);
+    vtPointer: if Obj.VPointer = nil then Result := nil;
   else
     // TODO: Delphi XE2 types
   end;
 end;
 
-constructor CVariant.CreateI(const Int: IUnknown);
+constructor CVariant.CreateI(const Int: IUnknown; NilToNull: Boolean = True);
 var
   IntObj: IObject;
 begin
+  if not Assigned(Int) then
+  begin
+    if NilToNull then
+      CreateNull
+    else
+      Destroy;
+  end else
   if Supports(Int, IObject, IntObj) then
   begin
-    case IntObj.delphiType of
+    case IntObj.VType of
+    vtEmpty: Destroy;
     vtInteger: FObj := (IntObj as IInteger).intValue;
     vtExtended: FObj := (IntObj as IDouble).doubleValue;
     vtBoolean: FObj := (IntObj as IBoolean).boolValue;
@@ -297,14 +330,19 @@ begin
   end;
 end;
 
-class function CVariant.MakeI(const Int: IUnknown): CVariant;
+class function CVariant.MakeI(const Int: IUnknown; NilToNull: Boolean = True): CVariant;
 begin
-  Result.CreateI(Int);
+  Result.CreateI(Int, NilToNull);
 end;
 
 destructor CVariant.Destroy;
 begin
   FObj := Unassigned;
+end;
+
+constructor CVariant.CreateNull;
+begin
+  FObj := Null;
 end;
 
 constructor CVariant.CreateOwned(Obj: TObject);
@@ -401,6 +439,11 @@ end;
 function CVarEmpty: CVariant;
 begin
   Result.FObj := Unassigned;
+end;
+
+function CVarNull: CVariant;
+begin
+  Result.FObj := Null;
 end;
 
 function CVar(Obj: TObject): CVariant;
@@ -613,7 +656,16 @@ end;
 
 function CVariant.Get(const Indices: array of const): CVariant;
 begin
-  Result := MakeI(GetDeepItem(Indices));
+  try
+    Result.CreateI(GetDeepItem(Indices), False);
+  except
+    on EVariantNotAnArrayError do
+      Result.CreateNull;
+    on EVariantInvalidArgError do
+      Result.CreateNull;
+    on EVariantBadIndexError do
+      Result.CreateNull;
+  end;
 end;
 
 procedure CVariant.Put(const Indices: array of const; const NewObj: CVariant);
@@ -770,17 +822,26 @@ var
   LIL: IList;
   LIM: IMap;
 begin
-  LIU := GetCollection;
+  try
+    LIU := GetCollection;
 
-  if Supports(LIU, IList, LIL) then
-    LIU := LIL.item[Ind]
-  else if Supports(LIU, IMap, LIM) then
-    LIU := LIM.get(VariantToRef(Ind))
-  else
-    RaiseNotAnArray;
-  LIL := nil; LIM := nil;
+    if Supports(LIU, IList, LIL) then
+      LIU := LIL.item[Ind]
+    else if Supports(LIU, IMap, LIM) then
+      LIU := LIM.get(VariantToRef(Ind))
+    else
+      RaiseNotAnArray;
+    LIL := nil; LIM := nil;
 
-  Result := MakeI(LIU);
+    Result.CreateI(LIU, False);
+  except
+    on EVariantNotAnArrayError do
+      Result.CreateNull;
+    on EVariantInvalidArgError do
+      Result.CreateNull;
+    on EVariantBadIndexError do
+      Result.CreateNull;
+  end;
 end;
 
 procedure CVariant.SetItems(const Ind: Variant; const NewObj: CVariant);
@@ -948,13 +1009,22 @@ var
   LIM: IMap;
 begin
   Result := False;
-  LIU := GetCollection;
+  try
+    LIU := GetCollection;
 
-  if Supports(LIU, IMap, LIM) then
-    Result := LIM.has(Key)
-  else
-    RaiseNotAnArray;
-  LIM := nil;
+    if Supports(LIU, IMap, LIM) then
+      Result := LIM.has(Key)
+    else
+      RaiseNotAnArray;
+    LIM := nil;
+  except
+    on EVariantNotAnArrayError do
+      Result := False;
+    on EVariantInvalidArgError do
+      Result := False;
+    on EVariantBadIndexError do
+      Result := False;
+  end;
 end;
 
 constructor CMapIterator.Create(const AMap: CVariant);
@@ -989,7 +1059,7 @@ function CMapIterator.Next(out Key: string; out Value: CVariant): Boolean;
   begin
     Next_Key := IIterator(FIterator).nextStr;
     Key := Next_Key;
-    Value.CreateI(IMap(FMap).Get(Next_Key));
+    Value.CreateI(IMap(FMap).Get(Next_Key), False);
     Result := True;
   end else
     Destroy;
@@ -1019,7 +1089,7 @@ var
   if IIterator(FIterator).hasNext then
   begin
     Next_Key := IIterator(FIterator).nextStr;
-    Value.CreateI(IMap(FMap).Get(Next_Key));
+    Value.CreateI(IMap(FMap).Get(Next_Key), False);
     Result := True;
   end else
     Destroy;
@@ -1060,7 +1130,7 @@ begin
   begin
     Key := FPosition;
     Inc(FPosition);
-    Value.CreateI(IIterator(FIterator).next);
+    Value.CreateI(IIterator(FIterator).next, False);
     Result := True;
   end else
     Destroy;
@@ -1087,7 +1157,7 @@ begin
   if IIterator(FIterator).hasNext then
   begin
     Inc(FPosition);
-    Value.CreateI(IIterator(FIterator).next);
+    Value.CreateI(IIterator(FIterator).next, False);
     Result := True;
   end else
     Destroy;

@@ -35,6 +35,8 @@ type
 
   TDeepTests = class(TTestCase)
   protected
+    F: CVariant;
+    procedure SetUp; override;
   published
     procedure Test1;
   end;
@@ -113,10 +115,9 @@ end;
 
 { TDeepTests }
 
-procedure TDeepTests.Test1;
-var
-  F: CVariant;
+procedure TDeepTests.SetUp;
 begin
+  inherited;
   F.CreateM([
     'List', VarL([34, 40, '', 'listitem']),
     'SubMap',
@@ -127,6 +128,10 @@ begin
         'ow', False
       ])
   ]);
+end;
+
+procedure TDeepTests.Test1;
+begin
   CheckEquals(vtMap,        F.VType,                        'F is map');
   CheckEquals(2,            F.Size,                         'F.Size');
   CheckEquals(vtList,       F.Get(['List']).VType,          'F[''List''] is list');
