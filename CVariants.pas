@@ -49,7 +49,7 @@ type
     function GetSize: Integer;
   public
     destructor Destroy; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
-    constructor CreateDisowned(Obj: TObject); {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
+    constructor CreateOwned(Obj: TObject); {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
     constructor Create(Obj: TObject); overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
     constructor Create(const Str: string);  overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
     constructor Create(Int: Integer); overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
@@ -122,7 +122,7 @@ type
     property Map: CVariant read GetMap;
   end;
 
-function CVarDisowned(Obj: TObject): CVariant; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
+function CVarOwned(Obj: TObject): CVariant; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
 function CVarEmpty: CVariant; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
 function CVar(Obj: TObject): CVariant; overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
 function CVar(const Str: string): CVariant;  overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
@@ -241,7 +241,7 @@ begin
     vtExtended: Result := iref(Obj.VExtended^);
     vtString: Result := iref(Obj.VString^);
     vtPChar: Result := iref(AnsiString(Obj.VPChar));
-    vtObject: Result := iown(Obj.VObject);
+    vtObject: Result := iref(Obj.VObject);
     vtWideChar: Result := iref(Obj.VWideChar);
     vtPWideChar: Result := iref(Obj.VPWideChar);
     vtAnsiString: Result := iref(AnsiString(Obj.VAnsiString));
@@ -285,14 +285,14 @@ begin
   FObj := Unassigned;
 end;
 
-constructor CVariant.CreateDisowned(Obj: TObject);
+constructor CVariant.CreateOwned(Obj: TObject);
 begin
-  FObj := iref(Obj);
+  FObj := iown(Obj);
 end;
 
 constructor CVariant.Create(Obj: TObject);
 begin
-  FObj := iown(Obj);
+  FObj := iref(Obj);
 end;
 
 constructor CVariant.Create(const Str: string);
@@ -371,9 +371,9 @@ begin
   end;
 end;
 
-function CVarDisowned(Obj: TObject): CVariant;
+function CVarOwned(Obj: TObject): CVariant;
 begin
-  Result.FObj := iref(Obj);
+  Result.FObj := iown(Obj);
 end;
 
 function CVarEmpty: CVariant;
@@ -383,7 +383,7 @@ end;
 
 function CVar(Obj: TObject): CVariant;
 begin
-  Result.FObj := iown(Obj);
+  Result.FObj := iref(Obj);
 end;
 
 function CVar(const Str: string): CVariant;
