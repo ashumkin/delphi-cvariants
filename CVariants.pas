@@ -456,11 +456,16 @@ begin
   case VType of
     vtList:
       begin
-        // TODO: Clone
+        Result.CreateL;
+        Result.AppendList(Self);
       end;
     vtMap:
+      begin
+        Result.CreateM;
+        Result.MergeMap(Self);
+      end;
   else
-    Result.CreateV(FObj);
+    Result := Self;
   end;
 end;
 
@@ -772,7 +777,7 @@ begin
   begin
     NMI.Create(NewMap);
     while NMI.Next do
-      LIM.put(iref(NMI.Key), VariantToRef(NMI.Value.FObj));
+      LIM.put(iref(NMI.Key), VariantToRef(NMI.Value.Clone.AsVariant));
   end else
     RaiseNotAnArray;
   LIM := nil;
@@ -808,7 +813,7 @@ begin
   begin
     NMI.Create(NewMap);
     while NMI.Next do
-      LIM.put(iref(NMI.Key), VariantToRef(NMI.Value.FObj));
+      LIM.put(iref(NMI.Key), VariantToRef(NMI.Value.Clone.AsVariant));
   end else
     RaiseNotAnArray;
   LIM := nil;
@@ -994,7 +999,7 @@ begin
   begin
     NLI.Create(NewList);
     while NLI.Next do
-      LIL.add(VariantToRef(NLI.Value.FObj));
+      LIL.add(VariantToRef(NLI.Value.Clone.AsVariant));
   end else
     RaiseNotAnArray;
   LIL := nil;
@@ -1029,7 +1034,7 @@ begin
   begin
     NLI.Create(NewList);
     while NLI.Next do
-      LIL.add(VariantToRef(NLI.Value.FObj));
+      LIL.add(VariantToRef(NLI.Value.Clone.AsVariant));
   end else
     RaiseNotAnArray;
   LIL := nil;
