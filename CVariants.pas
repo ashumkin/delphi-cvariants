@@ -32,7 +32,7 @@ type
     function GetAsPVariant: PVariant; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
     function GetHash: Integer;
 
-    function GetSelfTVarRecType: SmallInt;
+    function GetVType: SmallInt;
 
     // maps and lists
     function GetItems(const Ind: Variant): CVariant;
@@ -92,7 +92,7 @@ type
     property IsEmpty: Boolean read GetIsEmpty;
     property IsFull: Boolean read GetIsFull;
     property Size: Integer read GetSize;
-    property TVarRecType: SmallInt read GetSelfTVarRecType;
+    property VType: SmallInt read GetVType;
   end;
 
   CListIterator = {$IFNDEF DELPHI_HAS_RECORDS} object {$ELSE} record {$ENDIF}
@@ -226,7 +226,7 @@ begin
   end;
 end;
 
-function CVariant.GetSelfTVarRecType: SmallInt;
+function CVariant.GetVType: SmallInt;
 begin
   Result := GetTVarRecType(FObj);
 end;
