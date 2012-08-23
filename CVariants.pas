@@ -74,6 +74,7 @@ type
     // maps and lists
 
     function Get(const Indices: array of const): CVariant; // I failed to make a property out of them
+    function Has(const Indices: array of const): Boolean;
     procedure Put(const Indices: array of const; const NewObj: CVariant); overload;
     procedure Put(const IndicesAndObj: array of const); overload;
     procedure Remove(const Indices: array of const);
@@ -201,7 +202,7 @@ begin
     varDouble: Result := vtExtended;
     varCurrency: Result := vtExtended;
     varDate: Result := vtExtended;
-    varOleStr: Result := vtWideString;
+    varOleStr: Result := vtString;
     varDispatch: begin
       Result := vtInterface;
       LIU := IDispatch(TVarData(Obj).VDispatch);
@@ -218,7 +219,7 @@ begin
     varWord: Result := vtInteger;
     varLongWord: Result := vtInteger;
     varInt64: Result := vtInt64;
-    varString: Result := vtWideString;
+    varString: Result := vtString;
     varArray: // TODO: COM array to Collection sequence
   else
     // TODO: custom Variant
@@ -256,13 +257,7 @@ begin
     if not Assigned(LIU) then
       Result := vtEmpty
     else if Supports(LIU, IObject, LIO) then
-    begin
       Result := LIO.VType;
-      if Supports(LIU, IList) then
-        Result := vtList
-      else if Supports(LIU, IMap) then
-        Result := vtMap;
-    end;
   except
     on EVariantNotAnArrayError do
       Result := vtNull;
@@ -296,7 +291,7 @@ begin
         Result := iempty;
     vtWideString: Result := iref(WideString(Obj.VWideString));
     vtInt64: Result := iref(Obj.VInt64^);
-    vtPointer: if Obj.VPointer = nil then Result := nil;
+    vtPointer: if Obj.VPointer = nil then Result := iempty;
   else
     // TODO: Delphi XE2 types
   end;
@@ -320,7 +315,7 @@ begin
     vtInteger: FObj := (IntObj as IInteger).intValue;
     vtExtended: FObj := (IntObj as IDouble).doubleValue;
     vtBoolean: FObj := (IntObj as IBoolean).boolValue;
-    vtWideString: FObj := (IntObj as IString).toString;
+    vtString: FObj := (IntObj as IString).toString;
     else
       FObj := Int;
     end;
@@ -553,7 +548,7 @@ end;
 
 procedure CVariant.RaiseNotAnArray;
 begin
-  raise EVariantNotAnArrayError.Create(VarToStr(FObj));
+  raise EVariantNotAnArrayError.Create('Not an array being indexed');
 end;
 
 function CVariant.GetCollection: IUnknown;
@@ -665,6 +660,23 @@ begin
       Result.CreateNull;
     on EVariantBadIndexError do
       Result.CreateNull;
+  end;
+end;
+
+function CVariant.Has(const Indices: array of const): Boolean;
+var
+  Dummy: IUnknown;
+begin
+  try
+    Dummy := GetDeepItem(Indices);
+    Result := Dummy <> nil;
+  except
+    on EVariantNotAnArrayError do
+      Result := False;
+    on EVariantInvalidArgError do
+      Result := False;
+    on EVariantBadIndexError do
+      Result := False;
   end;
 end;
 

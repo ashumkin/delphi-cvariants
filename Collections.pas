@@ -354,11 +354,6 @@ type
     function boolValue :boolean;
   end;
 
-  TEmptyReference = class(TReference)
-  public
-     function VType: SmallInt;             override;
-  end;
-
   TOwnerReference = class(TReference)
   public
      destructor Destroy; override;
@@ -400,6 +395,11 @@ type
     function boolValue :boolean;
   end;
 
+  TEmptyReference = class(TIntReference)
+  public
+     function VType: SmallInt;             override;
+  end;
+  
   TLongReference = class(TAbstractObject, IComparable, IVariant, INumber, IInteger, ILongint, IDouble)
     _long  :longint;
 
@@ -1036,7 +1036,7 @@ end;
 
 function iempty: IObject;
 begin
-   result := TEmptyReference.create(nil);
+   result := TEmptyReference.create(0);
 end;
 
 function compare(i1, i2: longint): integer;
@@ -1368,7 +1368,7 @@ end;
 
 function TStrReference.VType: SmallInt;
 begin
-  Result := vtWideString;
+  Result := vtString;
 end;
 
 { TIntReference }
@@ -2259,6 +2259,10 @@ end;
 
 function TArrayList.at(index: Integer): IUnknown;
 begin
+  if index < 0 then
+    raise IllegalArgumentException.create('Invalid index')
+  else if index >= size then
+    raise NoSuchElementException.create('Index out of bounds');
   result := _list[index]
 end;
 

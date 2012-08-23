@@ -38,7 +38,8 @@ type
     F: CVariant;
     procedure SetUp; override;
   published
-    procedure Test1;
+    procedure TestItemAccess;
+    procedure TestNullValues;
   end;
 
 implementation
@@ -119,7 +120,7 @@ procedure TDeepTests.SetUp;
 begin
   inherited;
   F.CreateM([
-    'List', VList([34, 40, '', 'listitem']),
+    'List', VList([34, 40, '', 'listitem', nil]),
     'SubMap',
       VMap([
         'er', 0,
@@ -130,30 +131,39 @@ begin
   ]);
 end;
 
-procedure TDeepTests.Test1;
+procedure TDeepTests.TestItemAccess;
 begin
-  CheckEquals(vtMap,        F.VType,                        'F is map');
-  CheckEquals(2,            F.Size,                         'F.Size');
-  CheckEquals(vtList,       F.Get(['List']).VType,          'F[''List''] is list');
-  CheckEquals(4,            F.SizeDeep(['List']),           'F[''List''].Size');
-  CheckEquals(vtInteger,    F.Get(['List', 0]).VType,       'F[''List'', 0] is Integer');
-  CheckEquals(34,           F.Get(['List', 0]).ToInt,       'F[''List'', 0]');
-  CheckEquals(vtInteger,    F.Get(['List', 1]).VType,       'F[''List'', 1] is Integer');
-  CheckEquals(40,           F.Get(['List', 1]).ToInt,       'F[''List'', 1]');
-  CheckEquals(vtWideString, F.Get(['List', 2]).VType,       'F[''List'', 2] is Integer');
-  CheckEquals('',           F.Get(['List', 2]).ToString,    'F[''List'', 2]');
-  CheckEquals(vtWideString, F.Get(['List', 3]).VType,       'F[''List'', 3] is Integer');
-  CheckEquals('listitem',   F.Get(['List', 3]).ToString,    'F[''List'', 3]');
-  CheckEquals(vtMap,        F.Get(['SubMap']).VType,        'F[''SubMap''] is map');
-  CheckEquals(4,            F.SizeDeep(['SubMap']),         'F[''SubMap''].Size');
-  CheckEquals(vtInteger,    F.VTypeDeep(['SubMap', 'er']),  'F[''er''] is Integer');
-  CheckEquals(0,            F.Get(['SubMap', 'er']).ToInt,  'F[''SubMap'', ''er'']');
-  CheckEquals(vtInteger,    F.VTypeDeep(['SubMap', 'ui']),  'F[''ui''] is Integer');
-  CheckEquals(1,            F.Get(['SubMap', 'ui']).ToInt,  'F[''SubMap'', ''ui'']');
-  CheckEquals(vtInteger,    F.VTypeDeep(['SubMap', 'qx']),  'F[''qx''] is Integer');
-  CheckEquals(7,            F.Get(['SubMap', 'qx']).ToInt,  'F[''SubMap'', ''qx'']');
-  CheckEquals(vtBoolean,    F.VTypeDeep(['SubMap', 'ow']),  'F[''ow''] is Boolean');
-  CheckEquals(False,        F.Get(['SubMap', 'ow']).ToBool, 'F[''SubMap'', ''ow'']');
+  CheckEquals(vtMap,      F.VType,                        'F is map');
+  CheckEquals(2,          F.Size,                         'F.Size');
+  CheckEquals(vtList,     F.Get(['List']).VType,          'F[''List''] is list');
+  CheckEquals(5,          F.SizeDeep(['List']),           'F[''List''].Size');
+  CheckEquals(vtInteger,  F.Get(['List', 0]).VType,       'F[''List'', 0] is Integer');
+  CheckEquals(34,         F.Get(['List', 0]).ToInt,       'F[''List'', 0]');
+  CheckEquals(vtInteger,  F.Get(['List', 1]).VType,       'F[''List'', 1] is Integer');
+  CheckEquals(40,         F.Get(['List', 1]).ToInt,       'F[''List'', 1]');
+  CheckEquals(vtString,   F.Get(['List', 2]).VType,       'F[''List'', 2] is Integer');
+  CheckEquals('',         F.Get(['List', 2]).ToString,    'F[''List'', 2]');
+  CheckEquals(vtString,   F.Get(['List', 3]).VType,       'F[''List'', 3] is Integer');
+  CheckEquals('listitem', F.Get(['List', 3]).ToString,    'F[''List'', 3]');
+  CheckEquals(vtEmpty,    F.Get(['List', 4]).VType,       'F[''List'', 4] is Empty');
+  CheckEquals(vtMap,      F.Get(['SubMap']).VType,        'F[''SubMap''] is map');
+  CheckEquals(4,          F.SizeDeep(['SubMap']),         'F[''SubMap''].Size');
+  CheckEquals(vtInteger,  F.VTypeDeep(['SubMap', 'er']),  'F[''er''] is Integer');
+  CheckEquals(0,          F.Get(['SubMap', 'er']).ToInt,  'F[''SubMap'', ''er'']');
+  CheckEquals(vtInteger,  F.VTypeDeep(['SubMap', 'ui']),  'F[''ui''] is Integer');
+  CheckEquals(1,          F.Get(['SubMap', 'ui']).ToInt,  'F[''SubMap'', ''ui'']');
+  CheckEquals(vtInteger,  F.VTypeDeep(['SubMap', 'qx']),  'F[''qx''] is Integer');
+  CheckEquals(7,          F.Get(['SubMap', 'qx']).ToInt,  'F[''SubMap'', ''qx'']');
+  CheckEquals(vtBoolean,  F.VTypeDeep(['SubMap', 'ow']),  'F[''ow''] is Boolean');
+  CheckEquals(False,      F.Get(['SubMap', 'ow']).ToBool, 'F[''SubMap'', ''ow'']');
+end;
+
+procedure TDeepTests.TestNullValues;
+begin
+  CheckEquals(vtNull, F.VTypeDeep(['Something', 324]), 'F[''Something'', 324]');
+  CheckFalse(F.Has(['List', 45]), 'F[''List'', 45]');
+  CheckTrue(F.Has(['SubMap', 'ui']), 'F[''SubMap'', ''ui'']');
+  CheckEquals(vtNull, F.VTypeDeep(['SubMap', 'ui', True]), 'F[''SubMap'', ''ui'', True]');
 end;
 
 initialization
