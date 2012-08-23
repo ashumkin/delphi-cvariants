@@ -3,7 +3,7 @@ unit CVariants;
 interface
 
 uses
-  Collections;
+  Collections, Variants;
 
 {$INCLUDE 'CVariantDelphiFeatures.inc'}
 
@@ -30,9 +30,9 @@ type
     FObj: Variant;
 
     constructor CreateI(const Int: IUnknown; NilToNull: Boolean = True);
-    class function VariantToRef(const Obj: Variant): IUnknown;
-    class function ConstToRef(const Obj: TVarRec): IUnknown;
-    class function GetTVarRecType(const Obj: Variant): SmallInt;
+    class function VariantToRef(const Obj: Variant): IUnknown; {$IFDEF DELPHI_HAS_RECORDS} static; {$ENDIF}
+    class function ConstToRef(const Obj: TVarRec): IUnknown; {$IFDEF DELPHI_HAS_RECORDS} static; {$ENDIF}
+    class function GetTVarRecType(const Obj: Variant): SmallInt; {$IFDEF DELPHI_HAS_RECORDS} static; {$ENDIF}
     // class function MakeI(const Int: IUnknown; NilToNull: Boolean = True): CVariant; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
     function GetAsPVariant: PVariant; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
     function GetHash: Integer;
@@ -53,20 +53,20 @@ type
     function GetIsFull: Boolean;
     function GetSize: Integer;
   public
-    destructor Destroy; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
-    constructor CreateNull; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
-    constructor CreateOwned(Obj: TObject); {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
-    constructor Create(Obj: TObject); overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
-    constructor Create(const Str: string);  overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
-    constructor Create(Int: Integer); overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
-    constructor Create(Dbl: Double);  overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
-    constructor Create(Bol: Boolean); overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
-    constructor CreateV(const Vrn: Variant); {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
-    constructor CreateL; overload;
-    constructor CreateL(const AItems: array of const); overload;
-    constructor CreateM; overload;
-    constructor CreateM(const AKeyValues: array of const); overload;
-    constructor CreateM(const AKeys, AValues: array of const); overload;
+    procedure Destroy; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
+    procedure CreateNull; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
+    procedure CreateOwned(Obj: TObject); {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
+    procedure Create(Obj: TObject); overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
+    procedure Create(const Str: string);  overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
+    procedure Create(Int: Integer); overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
+    procedure Create(Dbl: Double);  overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
+    procedure Create(Bol: Boolean); overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
+    procedure CreateV(const Vrn: Variant); {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
+    procedure CreateL; overload;
+    procedure CreateL(const AItems: array of const); overload;
+    procedure CreateM; overload;
+    procedure CreateM(const AKeyValues: array of const); overload;
+    procedure CreateM(const AKeys, AValues: array of const); overload;
     function ToString: string;
     function ToInt: Integer;
     function ToBool: Boolean;
@@ -111,8 +111,8 @@ type
   public
     Key: Integer;
     Value: CVariant;
-    constructor Create(const AList: CVariant);
-    destructor Destroy;
+    procedure Create(const AList: CVariant);
+    procedure Destroy;
     function Next: Boolean;
     property List: CVariant read GetList;
   end;
@@ -124,8 +124,8 @@ type
   public
     Key: string;
     Value: CVariant;
-    constructor Create(const AMap: CVariant);
-    destructor Destroy;
+    procedure Create(const AMap: CVariant);
+    procedure Destroy;
     function Next: Boolean;
     property Map: CVariant read GetMap;
   end;
@@ -154,7 +154,7 @@ function VMap(const AKeys, AValues: array of const): Variant; overload;
 implementation
 
 uses
-  SysUtils, Variants, Math;
+  SysUtils, Math;
 
 class function CVariant.VariantToRef(const Obj: Variant): IUnknown;
 begin
@@ -179,7 +179,13 @@ begin
     varWord: Result := iref(TVarData(Obj).VWord);
     varLongWord: Result := iref(TVarData(Obj).VLongWord);
     varInt64: Result := iref(TVarData(Obj).VInt64);
-    varString: Result := iref(AnsiString(Pointer(TVarData(Obj).VString)));
+    {$IFDEF DELPHI_HAS_UINT64}
+    varUInt64: Result := iref(TVarData(Obj).VUInt64);
+    {$ENDIF}
+    varString: Result := iref(string(AnsiString(Pointer(TVarData(Obj).VString))));
+    {$IFDEF DELPHI_IS_UNICODE}
+    varUString: Result := iref(UnicodeString(Pointer(TVarData(Obj).VUString)));
+    {$ENDIF}
     varArray: // TODO: COM array to Collection sequence
   else
     // TODO: custom Variant
@@ -219,7 +225,13 @@ begin
     varWord: Result := vtInteger;
     varLongWord: Result := vtInteger;
     varInt64: Result := vtInt64;
+    {$IFDEF DELPHI_HAS_UINT64}
+    varUInt64: Result := vtInt64;
+    {$ENDIF}
     varString: Result := vtString;
+    {$IFDEF DELPHI_IS_UNICODE}
+    varUString: Result := vtString;
+    {$ENDIF}
     varArray: // TODO: COM array to Collection sequence
   else
     // TODO: custom Variant
@@ -274,14 +286,14 @@ begin
   case Obj.VType of
     vtInteger: Result := iref(Obj.VInteger);
     vtBoolean: Result := iref(Obj.VBoolean);
-    vtChar: Result := iref(Obj.VChar);
+    vtChar: Result := iref(string(AnsiString(Obj.VChar)));
     vtExtended: Result := iref(Obj.VExtended^);
-    vtString: Result := iref(Obj.VString^);
-    vtPChar: Result := iref(AnsiString(Obj.VPChar));
+    vtString: Result := iref(string(Obj.VString^));
+    vtPChar: Result := iref(string(AnsiString(Obj.VPChar)));
     vtObject: Result := iref(Obj.VObject);
     vtWideChar: Result := iref(Obj.VWideChar);
     vtPWideChar: Result := iref(Obj.VPWideChar);
-    vtAnsiString: Result := iref(AnsiString(Obj.VAnsiString));
+    vtAnsiString: Result := iref(string(AnsiString(Obj.VAnsiString)));
     vtCurrency: Result := iref(Obj.VCurrency^);
     vtVariant: Result := VariantToRef(Obj.VVariant^);
     vtInterface:
@@ -292,6 +304,9 @@ begin
     vtWideString: Result := iref(WideString(Obj.VWideString));
     vtInt64: Result := iref(Obj.VInt64^);
     vtPointer: if Obj.VPointer = nil then Result := iempty;
+    {$IFDEF DELPHI_IS_UNICODE}
+    vtUnicodeString: Result := iref(UnicodeString(Obj.VUnicodeString));
+    {$ENDIF}
   else
     // TODO: Delphi XE2 types
   end;
@@ -330,57 +345,57 @@ end;
 //   Result.CreateI(Int, NilToNull);
 // end;
 
-destructor CVariant.Destroy;
+procedure CVariant.Destroy;
 begin
   FObj := Unassigned;
 end;
 
-constructor CVariant.CreateNull;
+procedure CVariant.CreateNull;
 begin
   FObj := Null;
 end;
 
-constructor CVariant.CreateOwned(Obj: TObject);
+procedure CVariant.CreateOwned(Obj: TObject);
 begin
   FObj := iown(Obj);
 end;
 
-constructor CVariant.Create(Obj: TObject);
+procedure CVariant.Create(Obj: TObject);
 begin
   FObj := iref(Obj);
 end;
 
-constructor CVariant.Create(const Str: string);
+procedure CVariant.Create(const Str: string);
 begin
   FObj := Str;
 end;
 
-constructor CVariant.Create(Int: Integer);
+procedure CVariant.Create(Int: Integer);
 begin
   FObj := Int;
 end;
 
-constructor CVariant.Create(Dbl: Double);
+procedure CVariant.Create(Dbl: Double);
 begin
   FObj := Dbl;
 end;
 
-constructor CVariant.Create(Bol: Boolean);
+procedure CVariant.Create(Bol: Boolean);
 begin
   FObj := Bol;
 end;
 
-constructor CVariant.CreateV(const Vrn: Variant);
+procedure CVariant.CreateV(const Vrn: Variant);
 begin
   FObj := Vrn;
 end;
 
-constructor CVariant.CreateL;
+procedure CVariant.CreateL;
 begin
   CreateI(TArrayList.create);
 end;
 
-constructor CVariant.CreateL(const AItems: array of const);
+procedure CVariant.CreateL(const AItems: array of const);
 var
   LIL: IList;
   i: Integer;
@@ -393,12 +408,12 @@ begin
   end;
 end;
 
-constructor CVariant.CreateM;
+procedure CVariant.CreateM;
 begin
   CreateI(THashMap.create);
 end;
 
-constructor CVariant.CreateM(const AKeyValues: array of const);
+procedure CVariant.CreateM(const AKeyValues: array of const);
 var
   LIM: IMap;
   i: Integer;
@@ -412,7 +427,7 @@ begin
   end;
 end;
 
-constructor CVariant.CreateM(const AKeys, AValues: array of const);
+procedure CVariant.CreateM(const AKeys, AValues: array of const);
 var
   LIM: IMap;
   i: Integer;
@@ -533,7 +548,7 @@ end;
 
 function CVariant.ToString: string;
 begin
-  Result := stringOf(VariantToRef(FObj));
+  Result := Collections.stringOf(VariantToRef(FObj));
 end;
 
 function CVariant.ToInt: Integer;
@@ -577,7 +592,7 @@ begin
     if Supports(LIU, IList, LIL) then
     begin
       if Indices[i].VType <> vtInteger then
-        raise EVariantInvalidArgError.Create(stringOf(LIL));
+        raise EVariantInvalidArgError.Create(Collections.stringOf(LIL));
       LIU := LIL.item[Indices[i].VInteger];
     end else if Supports(LIU, IMap, LIM) then
       LIU := LIM.get(ConstToRef(Indices[i]))
@@ -607,7 +622,7 @@ begin
     if Supports(LIU, IList, LIL) then
     begin
       if Indices[i].VType <> vtInteger then
-        raise EVariantInvalidArgError.Create(stringOf(LIL));
+        raise EVariantInvalidArgError.Create(Collections.stringOf(LIL));
       LIU := LIL.item[Indices[i].VInteger];
     end else if Supports(LIU, IMap, LIM) then
       LIU := LIM.get(ConstToRef(Indices[i]))
@@ -637,7 +652,7 @@ begin
     if Supports(LIU, IList, LIL) then
     begin
       if IndicesAndObj[i].VType <> vtInteger then
-        raise EVariantInvalidArgError.Create(stringOf(LIL));
+        raise EVariantInvalidArgError.Create(Collections.stringOf(LIL));
       LIU := LIL.item[IndicesAndObj[i].VInteger];
     end else if Supports(LIU, IMap, LIM) then
       LIU := LIM.get(ConstToRef(IndicesAndObj[i]))
@@ -691,7 +706,7 @@ begin
   if Supports(LIU, IList, LIL) then
   begin
     if Indices[High(Indices)].VType <> vtInteger then
-      raise EVariantInvalidArgError.Create(stringOf(LIL));
+      raise EVariantInvalidArgError.Create(Collections.stringOf(LIL));
     LIL.item[Indices[High(Indices)].VInteger] := VariantToRef(NewObj.FObj);
   end else if Supports(LIU, IMap, LIM) then
     LIM.put(ConstToRef(Indices[High(Indices)]), VariantToRef(NewObj.FObj))
@@ -711,7 +726,7 @@ begin
   if Supports(LIU, IList, LIL) then
   begin
     if IndicesAndObj[High(IndicesAndObj) - 1].VType <> vtInteger then
-      raise EVariantInvalidArgError.Create(stringOf(LIL));
+      raise EVariantInvalidArgError.Create(Collections.stringOf(LIL));
     LIL.item[IndicesAndObj[High(IndicesAndObj) - 1].VInteger] :=
       ConstToRef(IndicesAndObj[High(IndicesAndObj)]);
   end else if Supports(LIU, IMap, LIM) then
@@ -733,7 +748,7 @@ begin
   if Supports(LIU, IList, LIL) then
   begin
     if Indices[High(Indices)].VType <> vtInteger then
-      raise EVariantInvalidArgError.Create(stringOf(LIL));
+      raise EVariantInvalidArgError.Create(Collections.stringOf(LIL));
     LIL.remove(Indices[High(Indices)].VInteger);
   end else if Supports(LIU, IMap, LIM) then
     LIM.remove(ConstToRef(Indices[High(Indices)]))
@@ -753,7 +768,7 @@ begin
   if Supports(LIU, IList, LIL) then
   begin
     if Indices[High(Indices)].VType <> vtInteger then
-      raise EVariantInvalidArgError.Create(stringOf(LIL));
+      raise EVariantInvalidArgError.Create(Collections.stringOf(LIL));
     LIL.insert(Indices[High(Indices)].VInteger, VariantToRef(NewObj.FObj));
   end else if Supports(LIU, IMap, LIM) then
     LIM.put(ConstToRef(Indices[High(Indices)]), VariantToRef(NewObj.FObj))
@@ -773,7 +788,7 @@ begin
   if Supports(LIU, IList, LIL) then
   begin
     if IndicesAndObj[High(IndicesAndObj) - 1].VType <> vtInteger then
-      raise EVariantInvalidArgError.Create(stringOf(LIL));
+      raise EVariantInvalidArgError.Create(Collections.stringOf(LIL));
     LIL.insert(IndicesAndObj[High(IndicesAndObj) - 1].VInteger,
       ConstToRef(IndicesAndObj[High(IndicesAndObj)]));
   end else if Supports(LIU, IMap, LIM) then
@@ -1039,7 +1054,7 @@ begin
   end;
 end;
 
-constructor CMapIterator.Create(const AMap: CVariant);
+procedure CMapIterator.Create(const AMap: CVariant);
 var
   LIU: IUnknown;
   LIM: IMap;
@@ -1057,7 +1072,7 @@ begin
   LIM := nil;
 end;
 
-destructor CMapIterator.Destroy;
+procedure CMapIterator.Destroy;
 begin
   FIterator := nil;
   FMap := nil;
@@ -1086,7 +1101,7 @@ begin
   Result.CreateI(FMap);
 end;
 
-constructor CListIterator.Create(const AList: CVariant);
+procedure CListIterator.Create(const AList: CVariant);
 var
   LIU: IUnknown;
   LIL: IList;
@@ -1104,7 +1119,7 @@ begin
   LIL := nil;
 end;
 
-destructor CListIterator.Destroy;
+procedure CListIterator.Destroy;
 begin
   FList := nil; FIterator := nil; FPosition := 0;
   Key := 0; Value.Destroy;
