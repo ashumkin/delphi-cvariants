@@ -37,7 +37,7 @@ uses
   CVariantDelphiFeatures;
 
 const
-  rcs_id :string = '@(#)$Id: Collections.pas,v 1.10 2001/10/23 03:55:20 juanco Exp $';
+  rcs_id :UnicodeString = '@(#)$Id: Collections.pas,v 1.10 2001/10/23 03:55:20 juanco Exp $';
 
   vtList  = -40;
   vtMap   = -41;
@@ -72,7 +72,7 @@ type
      ['{A1630E80-D635-11D2-992E-00207813339E}']
      function equals(o :IUnknown) :Boolean;
      function hash :Longint;
-     function toString :string;
+     function toString :UnicodeString;
      function instanceOf(const iid :TGUID) :boolean;
      function VType: SmallInt; // vt* constants
   end;
@@ -94,7 +94,7 @@ type
 
   IString = interface(IComparable)
      ['{D7732440-D718-11D2-992E-00207813339E}']
-     function toString :string;
+     function toString :UnicodeString;
   end;
 
   IInteger = interface(IComparable)
@@ -133,7 +133,7 @@ type
       ['{CB35D502-D656-11D2-992E-00207813339E}']
       function  hasNext :Boolean;
       function  next    :IUnknown;
-      function  nextStr :string;
+      function  nextStr :UnicodeString;
       procedure remove;
   end;
 
@@ -158,12 +158,12 @@ type
     procedure removeAll(c :ICollection);
     *)
 
-    function  add(item :string)    :boolean;     overload;
-    function  remove(item :string) :IUnknown;    overload;
-    function  has(item :string)    :boolean;     overload;
-    function  get(key:string)      :IUnknown;    overload;
-    function  getStr(key:Iunknown) :string;      overload;
-    function  getStr(key:string)   :string;      overload;
+    function  add(item :UnicodeString)    :boolean;     overload;
+    function  remove(item :UnicodeString) :IUnknown;    overload;
+    function  has(item :UnicodeString)    :boolean;     overload;
+    function  get(key:UnicodeString)      :IUnknown;    overload;
+    function  getStr(key:Iunknown) :UnicodeString;      overload;
+    function  getStr(key:UnicodeString)   :UnicodeString;      overload;
   end;
 
   IList = interface(ICollection)
@@ -174,7 +174,7 @@ type
     function  remove(index :integer):IUnknown;    overload;
     procedure put(index :Integer; item :IUnknown);
     procedure insert(index :Integer; item :IUnknown); overload;
-    procedure insert(index :Integer; item :string);   overload;
+    procedure insert(index :Integer; item :UnicodeString);   overload;
 
     function  first :IUnknown;
     function  last :IUnknown;
@@ -256,14 +256,14 @@ type
       function   values   :ICollection;
       function   entries :IIterator;
 
-      function   put(key, value:string):IUnknown;      overload;
-      function   get(key:string):IUnknown;             overload;
-      function   remove(key :string):IUnknown;         overload;
-      function   has(key :string) :boolean;            overload;
-      function   getEntry(key:string):IMapEntry;       overload;
+      function   put(key, value:UnicodeString):IUnknown;      overload;
+      function   get(key:UnicodeString):IUnknown;             overload;
+      function   remove(key :UnicodeString):IUnknown;         overload;
+      function   has(key :UnicodeString) :boolean;            overload;
+      function   getEntry(key:UnicodeString):IMapEntry;       overload;
 
-      function  getStr(key:Iunknown) :string;    overload;
-      function  getStr(key:string)   :string;    overload;
+      function  getStr(key:Iunknown) :UnicodeString;    overload;
+      function  getStr(key:UnicodeString)   :UnicodeString;    overload;
 
       function  get(key :integer) :IUnknown;                 overload;
       function  put(key :integer; value :IUnknown):IUnknown; overload;
@@ -332,7 +332,7 @@ type
      function hash :longint;                virtual;
      function obj :TObject;
      function referent: TObject;            virtual;
-     function toString :string;             virtual;
+     function toString :UnicodeString;             virtual;
      function clone    :IUnknown;           virtual;
      function instanceOf(const iid :TGUID) :boolean;   virtual;
      function VType: SmallInt;             virtual; // vt* constants
@@ -362,14 +362,14 @@ type
   end;
 
   TStrReference = class(TAbstractObject, IVariant, IComparable, IString)
-    _str  :string;
+    _str  :UnicodeString;
     _hash :longint;
 
-    constructor create(const str :string);
+    constructor create(const str :UnicodeString);
 
     function equals(o :IUnknown) :boolean;        override;
     function hash :longint;                       override;
-    function toString :string;                    override;
+    function toString :UnicodeString;                    override;
     function compareTo(other :IUnknown) :Integer; virtual;
     function VType: SmallInt;                    override;
 
@@ -386,7 +386,7 @@ type
 
     function equals(o :IUnknown) :boolean; override;
     function hash :longint;               override;
-    function toString :string;            override;
+    function toString :UnicodeString;            override;
     function compareTo(other :IUnknown) :Integer; virtual;
     function VType: SmallInt;             override;
 
@@ -408,7 +408,7 @@ type
 
     function equals(o :IUnknown) :boolean; override;
     function hash :longint;                override;
-    function toString :string;             override;
+    function toString :UnicodeString;             override;
     function compareTo(other :IUnknown) :Integer; virtual;
     function VType: SmallInt;             override;
 
@@ -425,7 +425,7 @@ type
 
     function equals(o :IUnknown) :boolean; override;
     function hash :longint;               override;
-    function toString :string;            override;
+    function toString :UnicodeString;            override;
     function compareTo(other :IUnknown) :Integer; virtual;
     function VType: SmallInt;             override;
 
@@ -442,7 +442,7 @@ type
 
     function equals(o :IUnknown) :boolean; override;
     function hash :longint;               override;
-    function toString :string;            override;
+    function toString :UnicodeString;            override;
     function compareTo(other :IUnknown) :Integer; virtual;
     function VType: SmallInt;             override;
 
@@ -462,7 +462,7 @@ type
       function  next    :IUnknown;  virtual; abstract;
       procedure remove;             virtual; abstract;
 
-      function  nextStr :string;    virtual;
+      function  nextStr :UnicodeString;    virtual;
   end;
 
   TAbstractCollection = class(TAbstractObject, ICollection)
@@ -482,14 +482,14 @@ type
 
     function  iterator :IIterator; virtual; abstract;
 
-    function  add(item :string)    :boolean;   overload;
-    function  remove(item :string) :IUnknown;  overload;
-    function  has(item :string)    :boolean;   overload;
-    function  get(key:string)      :IUnknown;  overload;
-    function  getStr(key:Iunknown) :string;    overload;
-    function  getStr(key:string)   :string;    overload;
+    function  add(item :UnicodeString)    :boolean;   overload;
+    function  remove(item :UnicodeString) :IUnknown;  overload;
+    function  has(item :UnicodeString)    :boolean;   overload;
+    function  get(key:UnicodeString)      :IUnknown;  overload;
+    function  getStr(key:Iunknown) :UnicodeString;    overload;
+    function  getStr(key:UnicodeString)   :UnicodeString;    overload;
 
-    function toString :string; override;
+    function toString :UnicodeString; override;
   end;
 
   TAbstractList = class(TAbstractCollection, IList)
@@ -505,7 +505,7 @@ type
 
       procedure put(index :Integer; item :IUnknown); overload; virtual; abstract;
       procedure insert(index :Integer; item :IUnknown); overload; virtual; abstract;
-      procedure insert(index :Integer; item :string);   overload;
+      procedure insert(index :Integer; item :UnicodeString);   overload;
   end;
 
   TAbstractListIterator = class(TAbstractIterator, IListIterator, IIterator)
@@ -688,16 +688,16 @@ type
       function  containsKey(key :IUnknown) :boolean;       virtual;
       function  containsValue(value :IUnknown) :boolean;   virtual;
 
-      function   put(key, value:string):IUnknown;      overload;
-      function   get(key:string):IUnknown;             overload;
-      function   remove(key :string):IUnknown;         overload;
-      function   has(key :string) :boolean;            overload;
+      function   put(key, value:UnicodeString):IUnknown;      overload;
+      function   get(key:UnicodeString):IUnknown;             overload;
+      function   remove(key :UnicodeString):IUnknown;         overload;
+      function   has(key :UnicodeString) :boolean;            overload;
 
-      function  getStr(key:Iunknown) :string;    overload;
-      function  getStr(key:string)   :string;    overload;
+      function  getStr(key:Iunknown) :UnicodeString;    overload;
+      function  getStr(key:UnicodeString)   :UnicodeString;    overload;
 
       function  getEntry(key:IUnknown):IMapEntry;   overload; virtual; abstract;
-      function  getEntry(key:string):IMapEntry;     overload; virtual;
+      function  getEntry(key:UnicodeString):IMapEntry;     overload; virtual;
 
       function  get(key :integer) :IUnknown;                 overload; virtual;
       function  put(key :integer; value :IUnknown):IUnknown; overload; virtual;
@@ -977,7 +977,7 @@ type
 
   function iown(obj :TObject)  :IReference;
   function iref(obj :TObject)  :IReference;  overload;
-  function iref(str :string)   :IString;     overload;
+  function iref(str :UnicodeString)   :IString;     overload;
   function iref(int :integer)  :Inumber;     overload;
   function ilong(lng :longint) :INumber;
   function iref(dbl :double)   :INumber;     overload;
@@ -989,8 +989,8 @@ type
   function equal(item1, item2: IUnknown) :boolean;
   function hashOf(item: IUnknown)        :longint;  overload;
   function hashOf(item: TObject)         :longint;  overload;
-  function stringOf(item: IUnknown)      :string;   overload;
-  function stringOf(item: TObject)       :string;   overload;
+  function stringOf(item: IUnknown)      :UnicodeString;   overload;
+  function stringOf(item: TObject)       :UnicodeString;   overload;
   function intOf(item: IUnknown)         :integer;  overload;
   function boolOf(item: IUnknown)        :boolean;
 
@@ -1009,7 +1009,7 @@ begin
    result := TOwnerReference.create(obj)
 end;
 
-function iref(str :string):IString;
+function iref(str :UnicodeString):IString;
 begin
    result := TStrReference.create(str)
 end;
@@ -1088,7 +1088,7 @@ begin
      result := longint(item)
 end;
 
-function stringOf(item: IUnknown): string;
+function stringOf(item: IUnknown): UnicodeString;
 var
   o :IObject;
 begin
@@ -1103,7 +1103,7 @@ begin
   end
 end;
 
-function stringOf(item: TObject)   : string;
+function stringOf(item: TObject)   : UnicodeString;
 begin
    if item = nil then
       result := format('%Unknown<%p>', [pointer(item)])
@@ -1275,7 +1275,7 @@ begin
    result := self
 end;
 
-function TAbstractObject.toString: string;
+function TAbstractObject.toString: UnicodeString;
 begin
     result := format('%s <%p>', [self.obj.ClassName, Pointer(self.obj)])
 end;
@@ -1313,7 +1313,7 @@ begin
       raise UnsupportedOperationException.create
 end;
 
-constructor TStrReference.create(const str: string);
+constructor TStrReference.create(const str: UnicodeString);
 begin
   inherited create;
   self._str := str;
@@ -1362,7 +1362,7 @@ begin
   result := StrToInt(_str);
 end;
 
-function TStrReference.toString: string;
+function TStrReference.toString: UnicodeString;
 begin
    result := _str
 end;
@@ -1407,7 +1407,7 @@ begin
    result := intValue
 end;
 
-function TIntReference.toString: string;
+function TIntReference.toString: UnicodeString;
 begin
    result := IntToStr(intValue)
 end;
@@ -1471,7 +1471,7 @@ begin
     result := round(doubleValue)
 end;
 
-function TDoubleReference.toString: string;
+function TDoubleReference.toString: UnicodeString;
 begin
    result := FloatToStr(doubleValue)
 end;
@@ -1550,7 +1550,7 @@ begin
   result := longValue
 end;
 
-function TLongReference.toString: string;
+function TLongReference.toString: UnicodeString;
 begin
     result := IntToStr(longValue)
 end;
@@ -1656,7 +1656,7 @@ begin
   result := Longint(_bol);
 end;
 
-function TBoolReference.toString: string;
+function TBoolReference.toString: UnicodeString;
 begin
   if _bol then
      result := 'true'
@@ -1759,37 +1759,37 @@ begin
      raise UnsupportedOperationException.create
 end;
 
-function TAbstractCollection.add(item: string): boolean;
+function TAbstractCollection.add(item: UnicodeString): boolean;
 begin
      result := add(iref(item))
 end;
 
-function TAbstractCollection.get(key: string): IUnknown;
+function TAbstractCollection.get(key: UnicodeString): IUnknown;
 begin
      result := get(iref(key))
 end;
 
-function TAbstractCollection.has(item: string): boolean;
+function TAbstractCollection.has(item: UnicodeString): boolean;
 begin
      result := has(iref(item))
 end;
 
-function TAbstractCollection.remove(item: string): IUnknown;
+function TAbstractCollection.remove(item: UnicodeString): IUnknown;
 begin
      result := remove(iref(item))
 end;
 
-function TAbstractCollection.getStr(key: Iunknown) :string;
+function TAbstractCollection.getStr(key: Iunknown) :UnicodeString;
 begin
    result := stringOf(get(key))
 end;
 
-function TAbstractCollection.getStr(key: string) :string;
+function TAbstractCollection.getStr(key: UnicodeString) :UnicodeString;
 begin
    result := stringOf(get(key))
 end;
 
-function TAbstractCollection.toString :string;
+function TAbstractCollection.toString :UnicodeString;
 var
  i :IIterator;
  n :integer;
@@ -1930,7 +1930,7 @@ begin
    result := remove(at(index))
 end;
 
-procedure TAbstractList.insert(index :Integer; item :string);
+procedure TAbstractList.insert(index :Integer; item :UnicodeString);
 begin
    insert(index, iref(item));
 end;
@@ -2569,37 +2569,37 @@ end;
 
 
 
-function TAbstractMap.get(key: string): IUnknown;
+function TAbstractMap.get(key: UnicodeString): IUnknown;
 begin
      result := get(iref(key))
 end;
 
-function TAbstractMap.getEntry(key: string): IMapEntry;
+function TAbstractMap.getEntry(key: UnicodeString): IMapEntry;
 begin
      result := getEntry(iref(key))
 end;
 
-function TAbstractMap.has(key: string): boolean;
+function TAbstractMap.has(key: UnicodeString): boolean;
 begin
      result := has(iref(key))
 end;
 
-function TAbstractMap.put(key, value: string): IUnknown;
+function TAbstractMap.put(key, value: UnicodeString): IUnknown;
 begin
    result := put(iref(key), iref(value))
 end;
 
-function TAbstractMap.remove(key: string): IUnknown;
+function TAbstractMap.remove(key: UnicodeString): IUnknown;
 begin
      result := remove(iref(key))
 end;
 
-function TAbstractMap.getStr(key: Iunknown): string;
+function TAbstractMap.getStr(key: Iunknown): UnicodeString;
 begin
      result := stringOf(get(key))
 end;
 
-function TAbstractMap.getStr(key: string): string;
+function TAbstractMap.getStr(key: UnicodeString): UnicodeString;
 begin
      result := stringOf(get(key))
 end;
@@ -4046,7 +4046,7 @@ end;
 
 { TAbstractIterator }
 
-function TAbstractIterator.nextStr: string;
+function TAbstractIterator.nextStr: UnicodeString;
 begin
      result := stringOf(next)
 end;

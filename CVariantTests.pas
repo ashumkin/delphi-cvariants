@@ -7,7 +7,11 @@ uses
    CVariants,
    Variants;
 
+{$INCLUDE 'CVariantDelphiFeatures.inc'}
+
+{$IFNDEF DELPHI_HAS_RECORDS}
 {$WARN UNSAFE_TYPE OFF}
+{$ENDIF}
 
 type
   TPrimitiveTests = class(TTestCase)

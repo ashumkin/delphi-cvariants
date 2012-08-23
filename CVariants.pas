@@ -7,9 +7,12 @@ uses
 
 {$INCLUDE 'CVariantDelphiFeatures.inc'}
 
+{$IFNDEF DELPHI_HAS_RECORDS}
 {$WARN UNSAFE_TYPE OFF}
-{$WARN UNSAFE_CODE OFF}
-{$WARN UNSAFE_CAST OFF}
+{$ENDIF}
+
+{$WARN UNSAFE_CODE OFF} // ^ and @
+{$WARN UNSAFE_CAST OFF} // Variant to TVarData
 
 const
   vtList  = Collections.vtList;
@@ -63,7 +66,7 @@ type
     procedure CreateM; overload;
     procedure CreateM(const AKeyValues: array of const); overload;
     procedure CreateM(const AKeys, AValues: array of const); overload;
-    function ToString: string;
+    function ToString: UnicodeString;
     function ToInt: Integer;
     function ToBool: Boolean;
 
@@ -118,7 +121,7 @@ type
     FMap, FIterator: IUnknown;
     function GetMap: CVariant;
   public
-    Key: string;
+    Key: UnicodeString;
     Value: CVariant;
     procedure Create(const AMap: CVariant);
     procedure Destroy;
@@ -164,7 +167,7 @@ begin
     varDouble: Result := iref(TVarData(Obj).VDouble);
     varCurrency: Result := iref(TVarData(Obj).VCurrency);
     varDate: Result := iref(TVarData(Obj).VDate);
-    varOleStr: Result := iref(WideString(Pointer(TVarData(Obj).VOleStr)));
+    varOleStr: Result := iref(UnicodeString(WideString(Pointer(TVarData(Obj).VOleStr))));
     varDispatch: Result := IUnknown(TVarData(Obj).VDispatch);
     varError: Result := iref(TVarData(Obj).VError);
     varBoolean: Result := iref(TVarData(Obj).VBoolean);
@@ -178,7 +181,7 @@ begin
     {$IFDEF DELPHI_HAS_UINT64}
     varUInt64: Result := iref(TVarData(Obj).VUInt64);
     {$ENDIF}
-    varString: Result := iref(string(AnsiString(Pointer(TVarData(Obj).VString))));
+    varString: Result := iref(UnicodeString(AnsiString(Pointer(TVarData(Obj).VString))));
     {$IFDEF DELPHI_IS_UNICODE}
     varUString: Result := iref(UnicodeString(Pointer(TVarData(Obj).VUString)));
     {$ENDIF}
@@ -282,14 +285,14 @@ begin
   case Obj.VType of
     vtInteger: Result := iref(Obj.VInteger);
     vtBoolean: Result := iref(Obj.VBoolean);
-    vtChar: Result := iref(string(AnsiString(Obj.VChar)));
+    vtChar: Result := iref(UnicodeString(AnsiString(Obj.VChar)));
     vtExtended: Result := iref(Obj.VExtended^);
-    vtString: Result := iref(string(Obj.VString^));
-    vtPChar: Result := iref(string(AnsiString(Obj.VPChar)));
+    vtString: Result := iref(UnicodeString(Obj.VString^));
+    vtPChar: Result := iref(UnicodeString(AnsiString(Obj.VPChar)));
     vtObject: Result := iref(Obj.VObject);
     vtWideChar: Result := iref(Obj.VWideChar);
     vtPWideChar: Result := iref(Obj.VPWideChar);
-    vtAnsiString: Result := iref(string(AnsiString(Obj.VAnsiString)));
+    vtAnsiString: Result := iref(UnicodeString(AnsiString(Obj.VAnsiString)));
     vtCurrency: Result := iref(Obj.VCurrency^);
     vtVariant: Result := VariantToRef(Obj.VVariant^);
     vtInterface:
@@ -542,7 +545,7 @@ begin
   Result := hashOf(VariantToRef(FObj));
 end;
 
-function CVariant.ToString: string;
+function CVariant.ToString: UnicodeString;
 begin
   Result := Collections.stringOf(VariantToRef(FObj));
 end;

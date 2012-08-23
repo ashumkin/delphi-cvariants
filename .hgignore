@@ -11,3 +11,4 @@ dunit.ini
 __history/*
 *.dproj.local
 *.ico
+*.tvsconfig
