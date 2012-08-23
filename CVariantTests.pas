@@ -41,6 +41,7 @@ type
     procedure TestItemAccess;
     procedure TestNullValues;
     procedure TestListIterator;
+    procedure TestMapIterator;
   end;
 
 implementation
@@ -184,6 +185,51 @@ begin
   CheckEquals(4, LI.Key, 'Key');
   CheckEquals(vtEmpty, LI.Value.VType, 'F[''List'', 1] is Empty');
   CheckFalse(LI.Next, 'F[''List'', 5]');
+end;
+
+procedure TDeepTests.TestMapIterator;
+var
+  MI: CMapIterator;
+  Count: Integer;
+  Occured: array[(er, ui, qx, ow)] of Boolean;
+begin
+  MI.Create(F.Get(['SubMap']));
+  Count := 0;
+  Occured[er] := False; Occured[ui] := False;
+  Occured[qx] := False; Occured[ow] := False;
+  while MI.Next do
+  begin
+    if MI.Key = 'er' then
+    begin
+      CheckFalse(Occured[er], 'Occured[er]');
+      CheckEquals(vtInteger, MI.Value.VType, 'F[''SubMap'', ''er''] is Integer');
+      CheckEquals(0, MI.Value.ToInt, 'F[''SubMap'', ''er'']');
+      Occured[er] := True;
+    end
+    else if MI.Key = 'ui' then
+    begin
+      CheckFalse(Occured[ui], 'Occured[ui]');
+      CheckEquals(vtInteger, MI.Value.VType, 'F[''SubMap'', ''ui''] is Integer');
+      CheckEquals(1, MI.Value.ToInt, 'F[''SubMap'', ''ui'']');
+      Occured[ui] := True;
+    end
+    else if MI.Key = 'qx' then
+    begin
+      CheckFalse(Occured[qx], 'Occured[qx]');
+      CheckEquals(vtInteger, MI.Value.VType, 'F[''SubMap'', ''qx''] is Integer');
+      CheckEquals(7, MI.Value.ToInt, 'F[''SubMap'', ''qx'']');
+      Occured[qx] := True;
+    end
+    else if MI.Key = 'ow' then
+    begin
+      CheckFalse(Occured[ow], 'Occured[ow]');
+      CheckEquals(vtBoolean, MI.Value.VType, 'F[''SubMap'', ''ow''] is Integer');
+      CheckEquals(False, MI.Value.ToBool, 'F[''SubMap'', ''ow'']');
+      Occured[ow] := True;
+    end;
+    Inc(Count);
+  end;
+  CheckEquals(4, Count, 'F[''SubMap''].Size');
 end;
 
 procedure TDeepTests.TestNullValues;
