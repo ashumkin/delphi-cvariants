@@ -3,7 +3,7 @@ unit CVariants;
 interface
 
 uses
-  Collections, Variants;
+  Collections, Variants, CVariantDelphiFeatures;
 
 {$INCLUDE 'CVariantDelphiFeatures.inc'}
 
@@ -18,10 +18,6 @@ const
   vtNull  = Collections.vtNull;
 
 type
-  {$IFNDEF DELPHI_IS_UNICODE}
-  UnicodeString = type WideString;
-  {$ENDIF}
-
   // CVariant must have the same size as Variant
   // There must be Variant inside and nothing else
   // CVariant stands for collection-variant

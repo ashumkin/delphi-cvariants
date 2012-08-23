@@ -4,7 +4,8 @@ interface
 uses
    SysUtils,
    TestFramework,
-   CVariants;
+   CVariants,
+   Variants;
 
 {$WARN UNSAFE_TYPE OFF}
 

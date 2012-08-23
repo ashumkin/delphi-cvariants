@@ -8,3 +8,6 @@ syntax: glob
 *.dcu
 *.exe
 dunit.ini
+__history/*
+*.dproj.local
+*.ico

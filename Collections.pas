@@ -33,7 +33,8 @@ uses
   SysUtils,
   Classes,
   Math,
-  Variants;
+  Variants,
+  CVariantDelphiFeatures;
 
 const
   rcs_id :string = '@(#)$Id: Collections.pas,v 1.10 2001/10/23 03:55:20 juanco Exp $';
@@ -580,7 +581,7 @@ type
   TArrayList = class(TAbstractList, IList)
     constructor create;                              overload;
     constructor create(Capacity :Integer);           overload;
-    destructor  destroy; override;
+    destructor  Destroy; override;
     function    add(item:IUnknown):boolean;          override;
     function    remove(item :IUnknown):IUnknown;     overload; override;
     function    remove(index :integer):IUnknown;     overload; override;
@@ -640,7 +641,7 @@ type
     function   get(key:IUnknown):IUnknown;       override;
     function   size :Integer;                  override;
     procedure  clear;                          override;
-    function   Iterator :IIterator;            override;
+    function   iterator :IIterator;            override;
 
   protected
     function  search(item :IUnknown; var index:Integer):boolean; virtual;
@@ -2216,7 +2217,7 @@ begin
    self.capacity := capacity;
 end;
 
-destructor TArrayList.destroy;
+destructor TArrayList.Destroy;
 var
   i :Integer;
 begin
@@ -2822,7 +2823,7 @@ begin
 end;
 
 
-function THashSet.Iterator: IIterator;
+function THashSet.iterator: IIterator;
 begin
    result := THashSetIterator.create(self)
 end;

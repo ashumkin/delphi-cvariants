@@ -82,8 +82,8 @@ type
 
   THeapTests = class(TTestCase)
     heap :IStack;
-    procedure setUp;    override;
-    procedure tearDown; override;
+    procedure SetUp;    override;
+    procedure TearDown; override;
   published
     procedure desceningOrder;    virtual;
     procedure randomOrder;       virtual;
@@ -409,13 +409,13 @@ end;
 
 { THeapTests }
 
-procedure THeapTests.setUp;
+procedure THeapTests.SetUp;
 begin
   heap := THeap.create(TArrayList.create);
   System.RandSeed := 0;
 end;
 
-procedure THeapTests.tearDown;
+procedure THeapTests.TearDown;
 begin
   heap := nil;
 end;
