@@ -33,7 +33,7 @@ type
     class function VariantToRef(const Obj: Variant): IUnknown;
     class function ConstToRef(const Obj: TVarRec): IUnknown;
     class function GetTVarRecType(const Obj: Variant): SmallInt;
-    class function MakeI(const Int: IUnknown; NilToNull: Boolean = True): CVariant; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
+    // class function MakeI(const Int: IUnknown; NilToNull: Boolean = True): CVariant; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
     function GetAsPVariant: PVariant; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
     function GetHash: Integer;
 
@@ -138,17 +138,17 @@ function CVar(Int: Integer): CVariant; overload; {$IFDEF DELPHI_HAS_INLINE} inli
 function CVar(Dbl: Double): CVariant;  overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
 function CVar(Bol: Boolean): CVariant; overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
 function CVarV(const Vrn: Variant): CVariant; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
-function CVarL: CVariant; overload;
-function CVarL(const AItems: array of const): CVariant; overload;
-function CVarM: CVariant; overload;
-function CVarM(const AKeyValues: array of const): CVariant; overload;
-function CVarM(const AKeys, AValues: array of const): CVariant; overload;
+function CList: CVariant; overload;
+function CList(const AItems: array of const): CVariant; overload;
+function CMap: CVariant; overload;
+function CMap(const AKeyValues: array of const): CVariant; overload;
+function CMap(const AKeys, AValues: array of const): CVariant; overload;
 
-function VarL: Variant; overload;
-function VarL(const AItems: array of const): Variant; overload;
-function VarM: Variant; overload;
-function VarM(const AKeyValues: array of const): Variant; overload;
-function VarM(const AKeys, AValues: array of const): Variant; overload;
+function VList: Variant; overload;
+function VList(const AItems: array of const): Variant; overload;
+function VMap: Variant; overload;
+function VMap(const AKeyValues: array of const): Variant; overload;
+function VMap(const AKeys, AValues: array of const): Variant; overload;
 
 implementation
 
@@ -330,10 +330,10 @@ begin
   end;
 end;
 
-class function CVariant.MakeI(const Int: IUnknown; NilToNull: Boolean = True): CVariant;
-begin
-  Result.CreateI(Int, NilToNull);
-end;
+// class function CVariant.MakeI(const Int: IUnknown; NilToNull: Boolean = True): CVariant;
+// begin
+//   Result.CreateI(Int, NilToNull);
+// end;
 
 destructor CVariant.Destroy;
 begin
@@ -476,52 +476,52 @@ begin
   Result.FObj := Vrn;
 end;
 
-function CVarL: CVariant;
+function CList: CVariant;
 begin
   Result.CreateL;
 end;
 
-function CVarL(const AItems: array of const): CVariant;
+function CList(const AItems: array of const): CVariant;
 begin
   Result.CreateL(AItems);
 end;
 
-function CVarM: CVariant;
+function CMap: CVariant;
 begin
   Result.CreateM;
 end;
 
-function CVarM(const AKeyValues: array of const): CVariant;
+function CMap(const AKeyValues: array of const): CVariant;
 begin
   Result.CreateM(AKeyValues);
 end;
 
-function CVarM(const AKeys, AValues: array of const): CVariant;
+function CMap(const AKeys, AValues: array of const): CVariant;
 begin
   Result.CreateM(AKeys, AValues);
 end;
 
-function VarL: Variant;
+function VList: Variant;
 begin
   CVariant(Result).CreateL;
 end;
 
-function VarL(const AItems: array of const): Variant;
+function VList(const AItems: array of const): Variant;
 begin
   CVariant(Result).CreateL(AItems);
 end;
 
-function VarM: Variant;
+function VMap: Variant;
 begin
   CVariant(Result).CreateM;
 end;
 
-function VarM(const AKeyValues: array of const): Variant;
+function VMap(const AKeyValues: array of const): Variant;
 begin
   CVariant(Result).CreateM(AKeyValues);
 end;
 
-function VarM(const AKeys, AValues: array of const): Variant;
+function VMap(const AKeys, AValues: array of const): Variant;
 begin
   CVariant(Result).CreateM(AKeys, AValues);
 end;

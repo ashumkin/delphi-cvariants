@@ -119,9 +119,9 @@ procedure TDeepTests.SetUp;
 begin
   inherited;
   F.CreateM([
-    'List', VarL([34, 40, '', 'listitem']),
+    'List', VList([34, 40, '', 'listitem']),
     'SubMap',
-      VarM([
+      VMap([
         'er', 0,
         'ui', 1,
         'qx', 7,
