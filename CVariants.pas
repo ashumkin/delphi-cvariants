@@ -481,12 +481,16 @@ begin
     while OI.Next do
     begin
       Item := Get([OI.Key]);
-      if Item.VType <> vtNull then
-      begin
-        Item.Overlay(OI.Value);
-        Put([OI.Key], Item);
-      end else
-        Put([OI.Key], OI.Value);
+      case Item.VType of
+      vtNull: Put([OI.Key], OI.Value);
+      vtMap:
+        if OI.Value.VType = vtMap then
+          Item.Overlay(OI.Value)
+        else
+          Put([OI.Key], OI.Value.Clone);
+      else
+          Put([OI.Key], OI.Value.Clone);
+      end;
     end;
   end else
     Self := OverlayObj.Clone;
