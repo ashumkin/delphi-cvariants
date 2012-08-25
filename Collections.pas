@@ -166,6 +166,7 @@ type
     function  getStr(key:UnicodeString)   :UnicodeString;      overload;
 
     function  getDrift: Integer;
+    procedure setDrift(newValue: Integer);
   end;
 
   IList = interface(ICollection)
@@ -494,6 +495,7 @@ type
     function toString :UnicodeString; override;
 
     function  getDrift: Integer; virtual;
+    procedure setDrift(newValue: Integer); virtual;
 
     constructor Create;
   protected
@@ -1001,6 +1003,7 @@ type
   function stringOf(item: TObject)       :UnicodeString;   overload;
   function intOf(item: IUnknown)         :integer;  overload;
   function boolOf(item: IUnknown)        :boolean;
+  function floatOf(item: IUnknown)       :double;
 
 implementation
 
@@ -1137,6 +1140,16 @@ begin
    if b = nil then
       raise EInvalidCast.create(stringOf(item));
    result := b.boolValue;
+end;
+
+function floatOf(item: IUnknown) :double;
+var
+  f: IDouble;
+begin
+   item.QueryInterface(IDouble, f);
+   if f = nil then
+      raise EInvalidCast.create(stringOf(item));
+   result := f.doubleValue;
 end;
 
 function equal(item1, item2: IUnknown): boolean;
@@ -1820,6 +1833,11 @@ end;
 function TAbstractCollection.getDrift: Integer;
 begin
   Result := FDrift;
+end;
+
+procedure TAbstractCollection.setDrift(newValue: Integer);
+begin
+  FDrift := newValue;
 end;
 
 constructor TAbstractCollection.Create;

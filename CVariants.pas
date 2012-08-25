@@ -51,6 +51,11 @@ type
     function GetIsEmpty: Boolean;
     function GetIsFull: Boolean;
     function GetSize: Integer;
+
+    // recursive
+    function GetDrift: Integer;
+    procedure SetDrift(NewValue: Integer);
+    property Drift: Integer read GetDrift write SetDrift;
   public
     procedure Destroy; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
     procedure CreateNull; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
@@ -66,11 +71,10 @@ type
     procedure CreateM; overload;
     procedure CreateM(const AKeyValues: array of const); overload;
     procedure CreateM(const AKeys, AValues: array of const); overload;
-    function Clone: CVariant;
-    procedure Overlay(const OverlayObj: CVariant); // only maps are merged
     function ToString: UnicodeString;
     function ToInt: Integer;
     function ToBool: Boolean;
+    function ToFloat: Double;
 
     // maps and lists
 
@@ -103,6 +107,44 @@ type
     function VTypeDeep(const Indices: array of const): SmallInt;
 
     function HasKey(const Key: string): Boolean;
+
+    // recursive
+    function Clone: CVariant;
+    procedure Overlay(const OverlayObj: CVariant);
+      // only maps are merged
+      // item from source either remain intact or being replaced
+      // by Cloned OverlayObj subitems
+
+    // function MakeDiff(const NewerVer: CVariant);
+    // diff is being constructed from fresh parts (put simply, it clones everything)
+    // Diff format in samples:
+    // Diff(0, 0) = null
+    // Diff(0, null) = { 'newnull': null }
+    // Diff(['I', 'am', 'list'], 'I am literal') = 'I am literal'
+    // Diff('I am literal', ['I', 'am', 'list']) = { 'newlist': ['I', 'am', 'list'] }
+    // Diff('I am literal', { 'I': 'am', 'map': null }) = { 'newmap': { 'I': 'am', 'map': null } }
+    // Diff([], {}) = { 'newmap': {} }
+    // Diff([/* Drift = 0 */ 1, 2, 3], [/* Drift = 1 */ 2, 4]) =
+    //    { 'cut': [1, 0], 'replace': [1], 'with': [4] }
+    // Diff([/* Drift = 0 */ 1, 2, 3], [/* Drift = 0 */ 1, 2, 4, 5]) =
+    //    { 'right': [5], 'replace': [2], 'with': [4] }
+    // Diff([/* Drift = 0 */ 1, 2, 3], [/* Drift = -1 */0, 1, 2, 3, 4]) =
+    //    { 'prepend': [0], 'append': [4] }
+    // Diff([/* Drift = 0 */ 1, 2, 3], [/* Drift = 1 */1]) =
+    //    { 'cut': [1, 1] }
+    // Diff([/* Drift = 0 */ 1, 2, 3], [/* Drift = 1 */ 1, 2, 3]) =
+    //    { 'cut': [1, 0], replace: [0, 1], 'with': [1, 2], 'append': [3] }
+    // Diff([/* Drift = 0 */ 1, 2, 3], [/* Drift = 20 */ 1, 2, 3]) =
+    //    { 'newlist': [1, 2, 3] }
+
+    // To summarize list operations, we first apply cut[left, right],
+    // then replace, then prepend and append
+
+    // Diff({ 'onlyinold': 2, 'both': 3 }, { 'both': 4, 'onlyinnew': 5 }) =
+    //    { 'remove': ['onlyinold'], 'overlay': { 'both': 4, 'onlyinnew': 5 } }
+
+    function DiffFromOld(const OldVersion: CVariant): CVariant;
+
 
     property AsVariant: Variant read FObj write FObj;
     property Items[const Ind: Variant]: CVariant read GetItems write SetItems; // TODO: Delphi 2006 - default?
@@ -452,50 +494,6 @@ begin
   end;
 end;
 
-function CVariant.Clone: CVariant;
-begin
-  case VType of
-    vtList:
-      begin
-        Result.CreateL;
-        Result.AppendList(Self);
-      end;
-    vtMap:
-      begin
-        Result.CreateM;
-        Result.MergeMap(Self);
-      end;
-  else
-    Result := Self;
-  end;
-end;
-
-procedure CVariant.Overlay(const OverlayObj: CVariant);
-var
-  OI: CMapIterator;
-  Item: CVariant;
-begin
-  if (VType = vtMap) and (OverlayObj.VType = vtMap) then
-  begin
-    OI.Create(OverlayObj);
-    while OI.Next do
-    begin
-      Item := Get([OI.Key]);
-      case Item.VType of
-      vtNull: Put([OI.Key], OI.Value);
-      vtMap:
-        if OI.Value.VType = vtMap then
-          Item.Overlay(OI.Value)
-        else
-          Put([OI.Key], OI.Value.Clone);
-      else
-          Put([OI.Key], OI.Value.Clone);
-      end;
-    end;
-  end else
-    Self := OverlayObj.Clone;
-end;
-
 function CVarOwned(Obj: TObject): CVariant;
 begin
   Result.FObj := iown(Obj);
@@ -614,6 +612,11 @@ end;
 function CVariant.ToBool: Boolean;
 begin
   Result := boolOf(VariantToRef(FObj));
+end;
+
+function CVariant.ToFloat: Double;
+begin
+  Result := floatOf(VariantToRef(FObj));
 end;
 
 procedure CVariant.RaiseNotAnArray;
@@ -1183,6 +1186,35 @@ begin
   LIL := nil; LIM := nil;
 end;
 
+function CVariant.GetDrift: Integer;
+var
+  LIU: IUnknown;
+  LIL: IList;
+begin
+  Result := 0;
+  LIU := GetCollection;
+
+  if Supports(LIU, IList, LIL) then
+    Result := LIL.getDrift
+  else
+    RaiseNotAnArray;
+  LIL := nil;
+end;
+
+procedure CVariant.SetDrift(NewValue: Integer);
+var
+  LIU: IUnknown;
+  LIL: IList;
+begin
+  LIU := GetCollection;
+
+  if Supports(LIU, IList, LIL) then
+    LIL.setDrift(NewValue)
+  else
+    RaiseNotAnArray;
+  LIL := nil;
+end;
+
 function CVariant.IsEmptyDeep(const Indices: array of const): Boolean;
 var
   LIU: IUnknown;
@@ -1384,5 +1416,109 @@ begin
 begin
   Result.CreateI(FList);
 end;
+
+
+
+function CVariant.Clone: CVariant;
+begin
+  case VType of
+    vtList:
+      begin
+        Result.CreateL;
+        Result.Drift := Self.Drift;
+        Result.AppendList(Self);
+      end;
+    vtMap:
+      begin
+        Result.CreateM;
+        Result.MergeMap(Self);
+      end;
+  else
+    Result := Self;
+  end;
+end;
+
+procedure CVariant.Overlay(const OverlayObj: CVariant);
+var
+  OI: CMapIterator;
+  Item: CVariant;
+begin
+  if (VType = vtMap) and (OverlayObj.VType = vtMap) then
+  begin
+    OI.Create(OverlayObj);
+    while OI.Next do
+    begin
+      Item := Get([OI.Key]);
+      case Item.VType of
+      vtNull: Put([OI.Key], OI.Value);
+      vtMap:
+        if OI.Value.VType = vtMap then
+          Item.Overlay(OI.Value)
+        else
+          Put([OI.Key], OI.Value.Clone);
+      else
+          Put([OI.Key], OI.Value.Clone);
+      end;
+    end;
+  end else
+    Self := OverlayObj.Clone;
+end;
+
+function CVariant.DiffFromOld(const OldVersion: CVariant): CVariant;
+var
+  OldVType, NewVType: SmallInt;
+begin
+  OldVType := OldVersion.VType;
+  NewVType := Self.VType;
+  if OldVType <> NewVType then
+  begin
+    if NewVType = vtList then
+    begin
+      Result.CreateM;
+      Result.Put(['newlist'], Self.Clone);
+    end else
+    if NewVType = vtMap then
+    begin
+      Result.CreateM;
+      Result.Put(['newmap'], Self.Clone);
+    end else
+    if NewVType = vtEmpty then
+      Result.CreateM(['newnull', nil])
+    else
+      Result := Self.Clone;
+  end else
+  case NewVType of
+  vtEmpty: Result.Destroy;
+  vtInteger:
+    if Self.ToInt <> OldVersion.ToInt then
+      Result := Self
+    else
+      Result.Destroy;
+  vtString:
+    if Self.ToString <> OldVersion.ToString then
+      Result := Self
+    else
+      Result.Destroy;
+  vtBoolean:
+    if Self.ToBool <> OldVersion.ToBool then
+      Result := Self
+    else
+      Result.Destroy;
+  vtExtended:
+    if Self.ToFloat <> OldVersion.ToFloat then
+      Result := Self
+    else
+      Result.Destroy;
+  vtList:
+    begin
+      // TODO: List and map diff
+    end;
+  vtMap:
+    begin
+    
+    end;
+  end;
+end;
+
 
 end.
