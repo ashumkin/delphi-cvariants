@@ -164,6 +164,8 @@ type
     function  get(key:UnicodeString)      :IUnknown;    overload;
     function  getStr(key:Iunknown) :UnicodeString;      overload;
     function  getStr(key:UnicodeString)   :UnicodeString;      overload;
+
+    function  getDrift: Integer;
   end;
 
   IList = interface(ICollection)
@@ -490,6 +492,12 @@ type
     function  getStr(key:UnicodeString)   :UnicodeString;    overload;
 
     function toString :UnicodeString; override;
+
+    function  getDrift: Integer; virtual;
+
+    constructor Create;
+  protected
+    FDrift: Integer;
   end;
 
   TAbstractList = class(TAbstractCollection, IList)
@@ -1809,6 +1817,17 @@ begin
    result := result + ']';
 end;
 
+function TAbstractCollection.getDrift: Integer;
+begin
+  Result := FDrift;
+end;
+
+constructor TAbstractCollection.Create;
+begin
+  inherited;
+  FDrift := 0;
+end;
+
 { TAbstractList }
 
 function TAbstractList.at(index: Integer): IUnknown;
@@ -2306,6 +2325,8 @@ begin
       _list[index] := nil; // important for refcounting
       for i := index+1 to size-1 do
         _list[i-1] := _list[i];
+      if index < _count div 2 then
+        Inc(FDrift);
       dec(_count);
    except
      raise NoSuchElementException.create(format('invalid index: %d', [index]))
@@ -2334,6 +2355,8 @@ begin
     _list[i+1] := _list[i];
   _list[index] := item;
   inc(_count);
+  if index < _count div 2 then
+    Dec(FDrift);
 end;
 
 { TArrayListIterator }
