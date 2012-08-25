@@ -49,6 +49,11 @@ type
     procedure TestMapIterator;
   end;
 
+  TRecursiveTests = class(TTestCase)
+  published
+    procedure TestOverlay;
+  end;
+
 implementation
 
 
@@ -245,10 +250,41 @@ begin
   CheckEquals(vtNull, F.VTypeDeep(['SubMap', 'ui', True]), 'F[''SubMap'', ''ui'', True]');
 end;
 
+{ TRecursiveTests }
+
+procedure TRecursiveTests.TestOverlay;
+var
+  Dest, Src: CVariant;
+begin
+  Dest.CreateM([
+    'Servers', VMap([
+      'InfoServer', '1.2.3.4',
+      'FileServer', '5.6.7.8'
+    ]),
+    'DownloadSources', VList(['https://abc.bit/', 'https://def.bit/']),
+    'RandomFlag', True
+  ]);
+  Src.CreateM([
+    'Servers', VMap([
+      'InfoServer', '9.10.11.12',
+      'WebServer', '13.14.15.16'
+    ]),
+    'DownloadSources', VList(['https://ghi.bit/']),
+    'RandomFlag', False
+  ]);
+  Dest.Overlay(Src);
+  CheckEquals(False, Dest.Get(['RandomFlag']).ToBool, 'Dest[''RandomFlag'']');
+  CheckEquals(1, Dest.SizeDeep(['DownloadSources']), 'Dest[''DownloadSources''].Size');
+  CheckEquals(3, Dest.SizeDeep(['Servers']), 'Dest[''Servers''].Size');
+  CheckEquals('9.10.11.12', Dest.Get(['Servers', 'InfoServer']).ToString, 'Dest[''Servers'', ''InfoServer'']');
+  CheckEquals('13.14.15.16', Dest.Get(['Servers', 'WebServer']).ToString, 'Dest[''Servers'', ''WebServer'']');
+end;
+
 initialization
   RegisterTests('CVariants',
     [TPrimitiveTests.Suite,
      TListTests.Suite,
-     TDeepTests.Suite
+     TDeepTests.Suite,
+     TRecursiveTests.Suite
     ]);
 end.
