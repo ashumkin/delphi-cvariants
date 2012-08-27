@@ -52,6 +52,8 @@ type
   TRecursiveTests = class(TTestCase)
   published
     procedure TestOverlay;
+    procedure TestDiffEqual;
+    procedure TestDiffEqual2;
   end;
 
 implementation
@@ -251,6 +253,52 @@ begin
 end;
 
 { TRecursiveTests }
+
+procedure TRecursiveTests.TestDiffEqual;
+var
+  Dest, Src: CVariant;
+begin
+  Src.CreateM([
+    'Servers', VMap([
+      'InfoServer', '1.2.3.4',
+      'FileServer', '5.6.7.8'
+    ]),
+    'DownloadSources', VList(['https://abc.bit/', 'https://def.bit/']),
+    'RandomFlag', True
+  ]);
+  Dest.CreateM([
+    'Servers', VMap([
+      'InfoServer', '1.2.3.4',
+      'FileServer', '5.6.7.8'
+    ]),
+    'DownloadSources', VList(['https://abc.bit/', 'https://def.bit/']),
+    'RandomFlag', True
+  ]);
+  CheckEquals(vtEmpty, Dest.DiffFromOld(Src).VType, 'Compare by diff');
+end;
+
+procedure TRecursiveTests.TestDiffEqual2;
+var
+  Dest: CVariant;
+begin
+  Dest.CreateM([
+    'Servers', VMap([
+      'InfoServer', '1.2.3.4',
+      'FileServer', '5.6.7.8'
+    ]),
+    'DownloadSources', VList(['https://abc.bit/', 'https://def.bit/']),
+    'RandomFlag', True
+  ]);
+  CheckEquals(vtEmpty, Dest.DiffFromOld(
+    CMap([
+      'Servers', VMap([
+        'InfoServer', '1.2.3.4',
+        'FileServer', '5.6.7.8'
+      ]),
+      'DownloadSources', VList(['https://abc.bit/', 'https://def.bit/']),
+      'RandomFlag', True
+    ])).VType, 'Compare by diff');
+end;
 
 procedure TRecursiveTests.TestOverlay;
 var
