@@ -106,7 +106,7 @@ type
     function SizeDeep(const Indices: array of const): Integer;
     function VTypeDeep(const Indices: array of const): SmallInt;
 
-    function HasKey(const Key: string): Boolean;
+    function HasKey(const Key: UnicodeString): Boolean;
 
     // recursive
     function Clone: CVariant;
@@ -141,7 +141,7 @@ type
     // then replace, then prepend and append
 
     // Diff({ 'onlyinold': 2, 'both': 3 }, { 'both': 4, 'onlyinnew': 5 }) =
-    //    { 'remove': ['onlyinold'], 'overlay': { 'both': 4, 'onlyinnew': 5 } }
+    //    { 'remove': ['onlyinold'], 'overlay': { 'both': 4}, 'put': {'onlyinnew': 5} } }
 
     function DiffFromOld(const OldVersion: CVariant): CVariant;
 
@@ -1303,7 +1303,7 @@ begin
   LIL := nil; LIM := nil;
 end;
 
-function CVariant.HasKey(const Key: string): Boolean;
+function CVariant.HasKey(const Key: UnicodeString): Boolean;
 var
   LIU: IUnknown;
   LIM: IMap;
@@ -1467,6 +1467,12 @@ end;
 function CVariant.DiffFromOld(const OldVersion: CVariant): CVariant;
 var
   OldVType, NewVType: SmallInt;
+  OldStart, OldSize, NewStart, NewSize, IntersectStart, IntersectSize: Integer;
+  CutLeft, CutRight, PasteLeft, PasteRight, i: Integer;
+  CreatedResult, CreatedReplace,
+  CreatedRemove, CreatedOverlay, CreatedPut: Boolean;
+  TempObj: CVariant;
+  MI: CMapIterator;
 begin
   OldVType := OldVersion.VType;
   NewVType := Self.VType;
@@ -1511,11 +1517,121 @@ begin
       Result.Destroy;
   vtList:
     begin
-      // TODO: List and map diff
+      try
+        OldStart := OldVersion.Drift;
+        OldSize := OldVersion.Size;
+        NewStart := Self.Drift;
+        NewSize := Self.Size;
+        if (NewStart >= OldStart) and (NewStart - OldStart < OldSize) then
+        begin
+          IntersectStart := NewStart;
+        end else
+        if (OldStart >= NewStart) and (OldStart - NewStart < NewSize) then
+        begin
+          IntersectStart := OldStart;
+        end else
+        begin
+          Result.CreateM; Result.Put(['newlist'], Self.Clone);
+          Exit;
+        end;
+        IntersectSize := Min(OldStart + OldSize, NewStart + NewSize) - IntersectStart;
+        CutLeft := IntersectStart - OldStart;
+        PasteLeft := IntersectStart - NewStart;
+        CutRight := (OldStart + OldSize) - (IntersectStart + IntersectSize);
+        PasteRight := (NewStart + NewSize) - (IntersectStart + IntersectSize);
+        CreatedResult := False; CreatedReplace := False;
+        if (CutLeft > 0) or (CutRight > 0) then
+        begin
+          Result.CreateM;
+          CreatedResult := True;
+          Result.Put(['cut'], CList([CutLeft, CutRight]));
+        end;
+        if PasteLeft > 0 then
+        begin
+          if not CreatedResult then
+          begin Result.CreateM; CreatedResult := True; end;
+          Result.Put(['prepend'], CList);
+          for i := 0 to PasteLeft - 1 do
+            Result.Append(['prepend'], Self.Get([i]).Clone);
+        end;
+        if PasteRight > 0 then
+        begin
+          if not CreatedResult then
+          begin Result.CreateM; CreatedResult := True; end;
+          Result.Put(['append'], CList);
+          for i := 0 to PasteRight - 1 do
+            Result.Append(['append'], Self.Get([NewSize - PasteRight + i]).Clone);
+        end;
+        for i := 0 to IntersectSize - 1 do
+        begin
+          TempObj := Self.Get([PasteLeft + i]).DiffFromOld(OldVersion.Get([CutLeft + i]));
+          if TempObj.VType <> vtEmpty then
+          begin
+            if not CreatedResult then
+            begin Result.CreateM; CreatedResult := True; end;
+            if not CreatedReplace then
+            begin
+              Result.Put(['replace'], CList);
+              Result.Put(['with'], CList);
+            end;
+            Result.Append(['replace', i]);
+            Result.Append(['with'], TempObj);
+            TempObj.Destroy;
+          end;
+        end;
+        if not CreatedResult then
+          Result.Destroy;
+      except
+        on ERangeError do
+        begin
+          Result.CreateM; Result.Put(['newlist'], Self.Clone);
+        end;
+      end;
     end;
   vtMap:
     begin
-    
+      CreatedResult := False; CreatedRemove := False;
+      CreatedOverlay := False; CreatedPut := False;
+      MI.Create(Self);
+      while MI.Next do
+      begin
+        if not OldVersion.HasKey(MI.Key) then
+        begin
+          if not CreatedResult then
+          begin Result.CreateM; CreatedResult := True; end;
+          if not CreatedPut then
+          begin Result.Put(['put'], CMap); CreatedPut := True; end;
+          Result.Put(['put', MI.Key], MI.Value.Clone);
+        end else
+        begin
+          TempObj := MI.Value.DiffFromOld(OldVersion.Get([MI.Key]));
+          if TempObj.VType <> vtEmpty then
+          begin
+            if not CreatedResult then
+            begin Result.CreateM; CreatedResult := True; end;
+            if not CreatedOverlay then
+            begin Result.Put(['overlay'], CMap); CreatedOverlay := True; end;
+            Result.Put(['overlay', MI.Key], TempObj);
+          end;
+          TempObj.Destroy;
+        end;
+      end;
+      MI.Destroy;
+      MI.Create(OldVersion);
+      while MI.Next do
+      begin
+        if not Self.HasKey(MI.Key) then
+        begin
+          if not CreatedResult then
+          begin Result.CreateM; CreatedResult := True; end;
+          if not CreatedRemove then
+          begin Result.Put(['remove'], CList); CreatedRemove := True; end;
+          Result.Append(['remove', MI.Key]);
+        end;
+      end;
+      MI.Destroy;
+      if not CreatedResult then
+        Result.Destroy;
     end;
   end;
 end;
