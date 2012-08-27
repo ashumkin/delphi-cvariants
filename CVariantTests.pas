@@ -54,6 +54,7 @@ type
     procedure TestOverlay;
     procedure TestDiffEqual;
     procedure TestDiffEqual2;
+    procedure TestDiffAdvanced;
   end;
 
 implementation
@@ -253,6 +254,73 @@ begin
 end;
 
 { TRecursiveTests }
+
+procedure TRecursiveTests.TestDiffAdvanced;
+var
+  Obj, Old, Diff: CVariant;
+begin
+  Obj.CreateM([
+    'Servers', VMap([
+      'InfoServer', '1.2.3.4',
+      'FileServer', '5.6.7.8',
+      'VideoServer', '::1'
+    ]),
+    'DownloadSources', VList(['https://abc.bit/', 'https://def.bit/']),
+    'RandomFlag', True,
+    'SomeInteger', 3
+  ]);
+  Old := Obj.Clone;
+  Obj.Remove(['Servers', 'FileServer']);
+  Obj.Put(['Servers', 'WebServer', '13.14.15.16']);
+  Obj.Put(['Servers', 'InfoServer', '9.10.11.12']);
+  Obj.Append(['DownloadSources', 'https://ghi.bit/']);
+  Obj.Put(['RandomFlag', False]);
+  Obj.Put(['SomeNewList'], CList([1, 2, 3, 4, 5]));
+  Diff := Obj.DiffFromOld(Old);
+  CheckEquals(vtMap, Diff.VType, 'Diff.VType');
+  CheckEquals(2, Diff.Size, 'Diff.Size');
+  CheckTrue(Diff.HasKey('put'), 'Diff.HasKey(''put'')');
+  CheckTrue(Diff.HasKey('overlay'), 'Diff.HasKey(''overlay'')');
+  CheckFalse(Diff.HasKey('remove'), 'Diff.HasKey(''remove'')');
+  CheckEquals(vtMap, Diff.VTypeDeep(['put']), 'Diff.VTypeDeep([''put''])');
+  CheckEquals(1, Diff.SizeDeep(['put']), 'Diff.SizeDeep([''put''])');
+  CheckTrue(Diff.Has(['put', 'SomeNewList']), 'Diff.Has([''put'', ''SomeNewList''])');
+  CheckEquals(vtList, Diff.VTypeDeep(['put', 'SomeNewList']), 'Diff.VTypeDeep([''put'', ''SomeNewList''])');
+  CheckEquals(5, Diff.SizeDeep(['put', 'SomeNewList']), 'Diff.SizeDeep([''put'', ''SomeNewList''])');
+  CheckEquals(vtMap, Diff.VTypeDeep(['overlay']), 'Diff.VTypeDeep([''overlay''])');
+  CheckEquals(3, Diff.SizeDeep(['overlay']), 'Diff.SizeDeep([''overlay''])');
+  CheckTrue(Diff.Has(['overlay', 'Servers']), 'Diff.Has([''overlay'', ''Servers''])');
+  CheckTrue(Diff.Has(['overlay', 'DownloadSources']), 'Diff.Has([''overlay'', ''DownloadSources''])');
+  CheckTrue(Diff.Has(['overlay', 'RandomFlag']), 'Diff.Has([''overlay'', ''RandomFlag''])');
+  CheckEquals(vtMap, Diff.VTypeDeep(['overlay', 'Servers']), 'Diff.VTypeDeep([''overlay'', ''Servers''])');
+  CheckEquals(3, Diff.SizeDeep(['overlay', 'Servers']), 'Diff.SizeDeep([''overlay'', ''Servers''])');
+  CheckTrue(Diff.Has(['overlay', 'Servers', 'remove']), 'Diff.Has([''overlay'', ''Servers'', ''remove''])');
+  CheckTrue(Diff.Has(['overlay', 'Servers', 'put']), 'Diff.Has([''overlay'', ''Servers'', ''put''])');
+  CheckTrue(Diff.Has(['overlay', 'Servers', 'overlay']), 'Diff.Has([''overlay'', ''Servers'', ''overlay''])');
+  CheckEquals(vtList, Diff.VTypeDeep(['overlay', 'Servers', 'remove']), 'Diff.VTypeDeep([''overlay'', ''Servers'', ''remove''])');
+  CheckEquals(1, Diff.SizeDeep(['overlay', 'Servers', 'remove']), 'Diff.SizeDeep([''overlay'', ''Servers'', ''remove''])');
+  CheckEquals(vtString, Diff.VTypeDeep(['overlay', 'Servers', 'remove', 0]), 'Diff.VTypeDeep([''overlay'', ''Servers'', ''remove'', 0])');
+  CheckEquals('FileServer', Diff.Get(['overlay', 'Servers', 'remove', 0]).ToString, 'Diff.Get([''overlay'', ''Servers'', ''remove'', 0]).ToString');
+  CheckEquals(vtMap, Diff.VTypeDeep(['overlay', 'Servers', 'put']), 'Diff.VTypeDeep([''overlay'', ''Servers'', ''put''])');
+  CheckEquals(1, Diff.SizeDeep(['overlay', 'Servers', 'put']), 'Diff.SizeDeep([''overlay'', ''Servers'', ''put''])');
+  CheckTrue(Diff.Has(['overlay', 'Servers', 'put', 'WebServer']), 'Diff.Has([''overlay'', ''Servers'', ''put'', ''WebServer''])');
+  CheckEquals(vtString, Diff.VTypeDeep(['overlay', 'Servers', 'put', 'WebServer']), 'Diff.VTypeDeep([''overlay'', ''Servers'', ''put'', ''WebServer''])');
+  CheckEquals('13.14.15.16', Diff.Get(['overlay', 'Servers', 'put', 'WebServer']).ToString, 'Diff.Get([''overlay'', ''Servers'', ''put'', ''WebServer'']).ToString');
+  CheckEquals(vtMap, Diff.VTypeDeep(['overlay', 'Servers', 'overlay']), 'Diff.VTypeDeep([''overlay'', ''Servers'', ''overlay''])');
+  CheckEquals(1, Diff.SizeDeep(['overlay', 'Servers', 'overlay']), 'Diff.SizeDeep([''overlay'', ''Servers'', ''overlay''])');
+  CheckTrue(Diff.Has(['overlay', 'Servers', 'overlay', 'InfoServer']), 'Diff.Has([''overlay'', ''Servers'', ''overlay'', ''InfoServer''])');
+  CheckEquals(vtString, Diff.VTypeDeep(['overlay', 'Servers', 'overlay', 'InfoServer']), 'Diff.VTypeDeep([''overlay'', ''Servers'', ''overlay'', ''InfoServer''])');
+  CheckEquals('9.10.11.12', Diff.Get(['overlay', 'Servers', 'overlay', 'InfoServer']).ToString, 'Diff.Get([''overlay'', ''Servers'', ''overlay'', ''InfoServer'']).ToString');
+  CheckEquals(vtMap, Diff.VTypeDeep(['overlay', 'DownloadSources']), 'Diff.VTypeDeep([''overlay'', ''DownloadSources''])');
+  CheckEquals(1, Diff.SizeDeep(['overlay', 'DownloadSources']), 'Diff.SizeDeep([''overlay'', ''DownloadSources''])');
+  CheckTrue(Diff.Has(['overlay', 'DownloadSources', 'append']), 'Diff.Has([''overlay'', ''DownloadSources'', ''append''])');
+  CheckEquals(vtList, Diff.VTypeDeep(['overlay', 'DownloadSources', 'append']), 'Diff.VTypeDeep([''overlay'', ''DownloadSources'', ''append''])');
+  CheckEquals(1, Diff.SizeDeep(['overlay', 'DownloadSources', 'append']), 'Diff.SizeDeep([''overlay'', ''DownloadSources'', ''append''])');
+  CheckEquals(vtString, Diff.VTypeDeep(['overlay', 'DownloadSources', 'append', 0]), 'Diff.VTypeDeep([''overlay'', ''DownloadSources'', ''append'', 0])');
+  CheckEquals('https://ghi.bit/', Diff.Get(['overlay', 'DownloadSources', 'append', 0]).ToString, 'Diff.Get([''overlay'', ''DownloadSources'', ''append'', 0]).ToString');
+  CheckEquals(vtBoolean, Diff.VTypeDeep(['overlay', 'RandomFlag']), 'Diff.VTypeDeep([''overlay'', ''RandomFlag''])');
+  CheckEquals(False, Diff.Get(['overlay', 'RandomFlag']).ToBool, 'Diff.Get([''overlay'', ''RandomFlag'']).ToBool');
+end;
 
 procedure TRecursiveTests.TestDiffEqual;
 var
