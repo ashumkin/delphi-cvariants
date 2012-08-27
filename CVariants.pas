@@ -110,6 +110,7 @@ type
 
     // recursive
     function Clone: CVariant;
+    function Equals(const Right: CVariant): Boolean;
     procedure Overlay(const OverlayObj: CVariant);
       // only maps are merged
       // item from source either remain intact or being replaced
@@ -1438,6 +1439,44 @@ begin
   end;
 end;
 
+function CVariant.Equals(const Right: CVariant): Boolean;
+var
+  SelfVType, RightVType: SmallInt;
+  i, L: Integer;
+  MI: CMapIterator;
+begin
+  Result := False;
+  SelfVType := Self.VType;
+  RightVType := Right.VType;
+  if SelfVType <> RightVType then Exit;
+  case SelfVType of
+  vtEmpty, vtNull: Result := True;
+  vtInteger: Result := Self.ToInt = Right.ToInt;
+  vtExtended: Result := Self.ToFloat = Right.ToFloat;
+  vtBoolean: Result := Self.ToBool = Right.ToBool;
+  vtString: Result := Self.ToString = Right.ToString;
+  vtList:
+    begin
+      L := Self.Size;
+      if L <> Right.Size then Exit;
+      for i := 0 to L - 1 do
+        if not Self.Get([i]).Equals(Right.Get([i])) then Exit;
+      Result := True;
+    end;
+  vtMap:
+    begin
+      if Self.Size <> Right.Size then Exit;
+      MI.Create(Self);
+      while MI.Next do
+      begin
+        if not Right.HasKey(MI.Key) then Exit;
+        if not MI.Value.Equals(Right.Get([MI.Key])) then Exit;
+      end;
+      Result := True;
+    end;
+  end;
+end;
+
 procedure CVariant.Overlay(const OverlayObj: CVariant);
 var
   OI: CMapIterator;
@@ -1522,6 +1561,13 @@ begin
         OldSize := OldVersion.Size;
         NewStart := Self.Drift;
         NewSize := Self.Size;
+
+        if (OldSize = NewSize) and (OldStart <> NewStart) then
+        begin
+          if Self.Equals(OldVersion) then // different drifts, but same contents
+          begin Result.Destroy; Exit; end;
+        end;
+
         if (NewStart >= OldStart) and (NewStart - OldStart < OldSize) then
         begin
           IntersectStart := NewStart;
