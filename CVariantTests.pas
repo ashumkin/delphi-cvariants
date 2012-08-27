@@ -55,6 +55,7 @@ type
     procedure TestDiffEqual;
     procedure TestDiffEqual2;
     procedure TestDiffAdvanced;
+    procedure TestEquals;
   end;
 
 implementation
@@ -366,6 +367,93 @@ begin
       'DownloadSources', VList(['https://abc.bit/', 'https://def.bit/']),
       'RandomFlag', True
     ])).VType, 'Compare by diff');
+end;
+
+procedure TRecursiveTests.TestEquals;
+var
+  DummyObj: CVariant;
+begin
+  CheckTrue(CMap([
+    'Servers', VMap([
+      'InfoServer', '1.2.3.4',
+      'FileServer', '5.6.7.8',
+      'VideoServer', '::1'
+    ]),
+    'DownloadSources', VList(['https://abc.bit/', 'https://def.bit/']),
+    'RandomFlag', True,
+    'SomeInteger', 3
+  ]).Equals(
+    CMap([
+      'Servers', VMap([
+        'InfoServer', '1.2.3.4',
+        'FileServer', '5.6.7.8',
+        'VideoServer', '::1'
+      ]),
+      'DownloadSources', VList(['https://abc.bit/', 'https://def.bit/']),
+      'RandomFlag', True,
+      'SomeInteger', 3
+    ])
+  ), 'simple equality');
+
+  CheckFalse(CMap([
+    'Servers', VMap([
+      'InfoServer', '1.2.3.4',
+      'FileServer', '5.6.7.8',
+      'VideoServer', '::1'
+    ]),
+    'DownloadSources', VList(['https://abc.bit/', 'https://def.bit/']),
+    'RandomFlag', True,
+    'SomeInteger', 3
+  ]).Equals(
+    CMap([
+      'Servers', VMap([
+        'InfoServer', '1.2.3.4',
+        'FileServer', '5.6.7.8',
+        'VideoServer', '::2'
+      ]),
+      'DownloadSources', VList(['https://abc.bit/', 'https://def.bit/']),
+      'RandomFlag', True,
+      'SomeInteger', 3
+    ])
+  ), 'simple difference');
+
+  DummyObj.CreateM([
+    'Servers', VMap([
+      'InfoServer', '1.2.3.4',
+      'FileServer', '5.6.7.8',
+      'VideoServer', '::1'
+    ]),
+    'DownloadSources', VList(['https://abc.bit/', 'https://def.bit/']),
+    'RandomFlag', True,
+    'SomeInteger', 3
+  ]);
+  DummyObj.Append(['DownloadSources', 'https://def.bit/']);
+  DummyObj.Put(['DownloadSources', 1, 'https://abc.bit/']);
+  DummyObj.Remove(['DownloadSources', 0]);
+  CheckTrue(DummyObj.Equals(
+    CMap([
+      'Servers', VMap([
+        'InfoServer', '1.2.3.4',
+        'FileServer', '5.6.7.8',
+        'VideoServer', '::1'
+      ]),
+      'DownloadSources', VList(['https://abc.bit/', 'https://def.bit/']),
+      'RandomFlag', True,
+      'SomeInteger', 3
+    ])
+  ), 'different drifts');
+  CheckEquals(vtEmpty, DummyObj.DiffFromOld(
+    CMap([
+      'Servers', VMap([
+        'InfoServer', '1.2.3.4',
+        'FileServer', '5.6.7.8',
+        'VideoServer', '::1'
+      ]),
+      'DownloadSources', VList(['https://abc.bit/', 'https://def.bit/']),
+      'RandomFlag', True,
+      'SomeInteger', 3
+    ])
+  ).VType, 'different drifts; equality by diff');
 end;
 
 procedure TRecursiveTests.TestOverlay;
