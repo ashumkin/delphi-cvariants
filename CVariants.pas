@@ -145,7 +145,7 @@ type
     //    { 'remove': ['onlyinold'], 'overlay': { 'both': 4}, 'put': {'onlyinnew': 5} } }
 
     function DiffFromOld(const OldVersion: CVariant): CVariant;
-    // procedure ApplyPatch(const Patch: CVariant);
+    procedure ApplyPatch(const Patch: CVariant);
 
 
     property AsVariant: Variant read FObj write FObj;
@@ -1577,6 +1577,11 @@ begin
           begin Result.Destroy; Exit; end;
         end;
 
+        if (OldSize = 0) or (NewSize = 0) then
+        begin
+          Result.CreateM; Result.Put(['newlist'], Self.Clone); Exit;
+        end;
+
         if (NewStart >= OldStart) and (NewStart - OldStart < OldSize) then
         begin
           IntersectStart := NewStart;
@@ -1691,5 +1696,83 @@ begin
   end;
 end;
 
+procedure CVariant.ApplyPatch(const Patch: CVariant);
+var
+  i, j, k, L: Integer;
+  SubItem: CVariant;
+  LI: CListIterator;
+  MI: CMapIterator;
+begin
+  case Patch.VType of
+  vtEmpty: ; // do nothing
+  vtInteger, vtString, vtExtended, vtBoolean: Self := Patch;
+  vtMap:
+    begin
+      if Patch.HasKey('newnull') then
+        Self.Destroy
+      else if Patch.HasKey('newlist') then
+        Self := Patch.Get(['newlist']).Clone
+      else if Patch.HasKey('newmap') then
+        Self := Patch.Get(['newmap']).Clone
+      else
+      case Self.VType of
+      vtList:
+        begin
+          if (Patch.VTypeDeep(['cut']) = vtList) and
+             (Patch.SizeDeep(['cut']) >= 2) then
+          begin
+            L := Self.Size;
+            j := Patch.Get(['cut', 1]).ToInt;
+            for i := L - 1 downto L - j do
+              Self.Remove([i]);
+            j := Patch.Get(['cut', 0]).ToInt;
+            for i := j - 1 downto 0 do
+              Self.Remove([i]);
+          end;
+          if (Patch.VTypeDeep(['replace']) = vtList) and
+             (Patch.VTypeDeep(['with']) = vtList) then
+          begin
+            j := Min(Patch.SizeDeep(['replace']), Patch.SizeDeep(['with']));
+            for i := 0 to j - 1 do
+            begin
+              k := Patch.Get(['replace', i]).ToInt;
+              SubItem := Self.Get([k]);
+              SubItem.ApplyPatch(Patch.Get(['with', i]));
+              Self.Put([k], SubItem);
+              SubItem.Destroy;
+            end;
+          end;
+          if Patch.VTypeDeep(['prepend']) = vtList then
+            Self.InsertList([0], Patch.Get(['prepend']).Clone);
+          if Patch.VTypeDeep(['append']) = vtList then
+            Self.AppendList(Patch.Get(['append']).Clone);
+        end;
+      vtMap:
+        begin
+          if Patch.VTypeDeep(['remove']) = vtList then
+          begin
+            LI.Create(Patch.Get(['remove']));
+            while LI.Next do
+              Self.Remove([LI.Value.ToString]);
+            LI.Destroy;
+          end;
+          if Patch.VTypeDeep(['overlay']) = vtMap then
+          begin
+            MI.Create(Patch.Get(['overlay']));
+            while MI.Next do
+            begin
+              SubItem := Self.Get([MI.Key]);
+              SubItem.ApplyPatch(MI.Value);
+              Self.Put([MI.Key], SubItem);
+            end;
+            MI.Destroy;
+          end;
+          if Patch.VTypeDeep(['put']) = vtMap then
+            Self.MergeMap(Patch.Get(['put']).Clone);
+        end;
+      end;
+    end;
+  end;
+end;
 
 end.
