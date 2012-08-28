@@ -145,6 +145,7 @@ type
     //    { 'remove': ['onlyinold'], 'overlay': { 'both': 4}, 'put': {'onlyinnew': 5} } }
 
     function DiffFromOld(const OldVersion: CVariant): CVariant;
+    // procedure ApplyPatch(const Patch: CVariant);
 
 
     property AsVariant: Variant read FObj write FObj;
@@ -808,7 +809,7 @@ begin
   begin
     NMI.Create(NewMap);
     while NMI.Next do
-      LIM.put(iref(NMI.Key), VariantToRef(NMI.Value.Clone.AsVariant));
+      LIM.put(iref(NMI.Key), VariantToRef(NMI.Value.AsVariant));
   end else
     RaiseNotAnArray;
   LIM := nil;
@@ -844,7 +845,7 @@ begin
   begin
     NMI.Create(NewMap);
     while NMI.Next do
-      LIM.put(iref(NMI.Key), VariantToRef(NMI.Value.Clone.AsVariant));
+      LIM.put(iref(NMI.Key), VariantToRef(NMI.Value.AsVariant));
   end else
     RaiseNotAnArray;
   LIM := nil;
@@ -1030,7 +1031,7 @@ begin
   begin
     NLI.Create(NewList);
     while NLI.Next do
-      LIL.add(VariantToRef(NLI.Value.Clone.AsVariant));
+      LIL.add(VariantToRef(NLI.Value.AsVariant));
   end else
     RaiseNotAnArray;
   LIL := nil;
@@ -1065,7 +1066,7 @@ begin
   begin
     NLI.Create(NewList);
     while NLI.Next do
-      LIL.add(VariantToRef(NLI.Value.Clone.AsVariant));
+      LIL.add(VariantToRef(NLI.Value.AsVariant));
   end else
     RaiseNotAnArray;
   LIL := nil;
@@ -1421,18 +1422,25 @@ end;
 
 
 function CVariant.Clone: CVariant;
+var
+  LI: CListIterator;
+  MI: CMapIterator;
 begin
   case VType of
     vtList:
       begin
         Result.CreateL;
+        LI.Create(Self);
+        while LI.Next do
+          Result.Append(LI.Value.Clone);
         Result.Drift := Self.Drift;
-        Result.AppendList(Self);
       end;
     vtMap:
       begin
         Result.CreateM;
-        Result.MergeMap(Self);
+        MI.Create(Self);
+        while MI.Next do
+          Result.Put([MI.Key], MI.Value.Clone);
       end;
   else
     Result := Self;
@@ -1450,7 +1458,8 @@ begin
   RightVType := Right.VType;
   if SelfVType <> RightVType then Exit;
   case SelfVType of
-  vtEmpty, vtNull: Result := True;
+  vtEmpty: Result := True;
+  vtNull: Result := False; // "undefined" never equals to anything
   vtInteger: Result := Self.ToInt = Right.ToInt;
   vtExtended: Result := Self.ToFloat = Right.ToFloat;
   vtBoolean: Result := Self.ToBool = Right.ToBool;
