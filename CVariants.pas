@@ -122,7 +122,7 @@ type
     // Diff(0, 0) = null
     // Diff(0, null) = { 'newnull': null }
     // Diff(['I', 'am', 'list'], 'I am literal') = 'I am literal'
-    // Diff('I am literal', ['I', 'am', 'list']) = { 'newlist': ['I', 'am', 'list'] }
+    // Diff('I am literal', ['I', 'am', 'list']) = ['I', 'am', 'list']
     // Diff('I am literal', { 'I': 'am', 'map': null }) = { 'newmap': { 'I': 'am', 'map': null } }
     // Diff([], {}) = { 'newmap': {} }
     // Diff([/* Drift = 0 */ 1, 2, 3], [/* Drift = 1 */ 2, 4]) =
@@ -1528,8 +1528,7 @@ begin
   begin
     if NewVType = vtList then
     begin
-      Result.CreateM;
-      Result.Put(['newlist'], Self.Clone);
+      Result := Self.Clone;
     end else
     if NewVType = vtMap then
     begin
@@ -1579,7 +1578,7 @@ begin
 
         if (OldSize = 0) or (NewSize = 0) then
         begin
-          Result.CreateM; Result.Put(['newlist'], Self.Clone); Exit;
+          Result := Self.Clone; Exit;
         end;
 
         if (NewStart >= OldStart) and (NewStart - OldStart < OldSize) then
@@ -1591,8 +1590,7 @@ begin
           IntersectStart := OldStart;
         end else
         begin
-          Result.CreateM; Result.Put(['newlist'], Self.Clone);
-          Exit;
+          Result := Self.Clone; Exit;
         end;
         IntersectSize := Min(OldStart + OldSize, NewStart + NewSize) - IntersectStart;
         CutLeft := IntersectStart - OldStart;
@@ -1644,7 +1642,7 @@ begin
       except
         on ERangeError do
         begin
-          Result.CreateM; Result.Put(['newlist'], Self.Clone);
+          Result := Self.Clone;
         end;
       end;
     end;
@@ -1706,6 +1704,7 @@ begin
   case Patch.VType of
   vtEmpty: ; // do nothing
   vtInteger, vtString, vtExtended, vtBoolean: Self := Patch;
+  vtList: Self := Patch.Clone;
   vtMap:
     begin
       if Patch.HasKey('newnull') then
