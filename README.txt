@@ -1,5 +1,8 @@
 CVariants - a Delphi collections library .
 
+Dependencies:
+- dUnit: http://dunit.sf.net/
+
 BitBucket project page: https://bitbucket.org/OCTAGRAM/delphi-cvariants
 
 See also: https://bitbucket.org/OCTAGRAM/delphi-yaml
