@@ -61,7 +61,7 @@ type
     procedure CreateNull; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
     procedure CreateOwned(Obj: TObject); {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
     procedure Create(Obj: TObject); overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
-    procedure Create(const Str: string);  overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
+    procedure Create(const Str: UnicodeString);  overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
     procedure Create(Int: Integer); overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
     procedure Create(Dbl: Double);  overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
     procedure Create(Bol: Boolean); overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
@@ -189,7 +189,7 @@ function CVarOwned(Obj: TObject): CVariant; {$IFDEF DELPHI_HAS_INLINE} inline; {
 function CVarEmpty: CVariant; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
 function CVarNull: CVariant; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
 function CVar(Obj: TObject): CVariant; overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
-function CVar(const Str: string): CVariant;  overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
+function CVar(const Str: UnicodeString): CVariant;  overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
 function CVar(Int: Integer): CVariant; overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
 function CVar(Dbl: Double): CVariant;  overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
 function CVar(Bol: Boolean): CVariant; overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
@@ -420,7 +420,7 @@ begin
   FObj := iref(Obj);
 end;
 
-procedure CVariant.Create(const Str: string);
+procedure CVariant.Create(const Str: UnicodeString);
 begin
   FObj := Str;
 end;
@@ -516,7 +516,7 @@ begin
   Result.FObj := iref(Obj);
 end;
 
-function CVar(const Str: string): CVariant;
+function CVar(const Str: UnicodeString): CVariant;
 begin
   Result.FObj := Str;
 end;
