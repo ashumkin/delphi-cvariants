@@ -603,22 +603,54 @@ end;
 
 function CVariant.ToString: UnicodeString;
 begin
-  Result := Collections.stringOf(VariantToRef(FObj));
+  case TVarData(FObj).VType of
+    varOleStr: Result := UnicodeString(WideString(Pointer(TVarData(FObj).VOleStr)));
+    varString: Result := UnicodeString(AnsiString(Pointer(TVarData(FObj).VString)));
+    {$IFDEF DELPHI_IS_UNICODE}
+    varUString: Result := UnicodeString(Pointer(TVarData(FObj).VUString));
+    {$ENDIF}
+  else
+    Result := Collections.stringOf(VariantToRef(FObj));
+  end;
 end;
 
 function CVariant.ToInt: Integer;
 begin
-  Result := intOf(VariantToRef(FObj));
+  case TVarData(FObj).VType of
+    varSmallint: Result := TVarData(FObj).VSmallInt;
+    varInteger: Result := TVarData(FObj).VInteger;
+    varError: Result := TVarData(FObj).VError;
+    varShortInt: Result := TVarData(FObj).VShortInt;
+    varByte: Result := TVarData(FObj).VByte;
+    varWord: Result := TVarData(FObj).VWord;
+    varLongWord: Result := TVarData(FObj).VLongWord;
+    varInt64: Result := TVarData(FObj).VInt64;
+    {$IFDEF DELPHI_HAS_UINT64}
+    varUInt64: TVarData(FObj).VUInt64;
+    {$ENDIF}
+  else
+    Result := intOf(VariantToRef(FObj));
+  end;
 end;
 
 function CVariant.ToBool: Boolean;
 begin
-  Result := boolOf(VariantToRef(FObj));
+  case TVarData(FObj).VType of
+    varBoolean: Result := TVarData(FObj).VBoolean;
+  else
+    Result := boolOf(VariantToRef(FObj));
+  end;
 end;
 
 function CVariant.ToFloat: Double;
 begin
-  Result := floatOf(VariantToRef(FObj));
+  case TVarData(FObj).VType of
+    varSingle: Result := TVarData(FObj).VSingle;
+    varDouble: Result := TVarData(FObj).VDouble;
+    varCurrency: Result := TVarData(FObj).VCurrency;
+  else
+    Result := floatOf(VariantToRef(FObj));
+  end;
 end;
 
 procedure CVariant.RaiseNotAnArray;
