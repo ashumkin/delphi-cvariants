@@ -39,10 +39,11 @@ uses
 const
   rcs_id :UnicodeString = '@(#)$Id: Collections.pas,v 1.10 2001/10/23 03:55:20 juanco Exp $';
 
-  vtList  = -40;
-  vtMap   = -41;
-  vtEmpty = -42;
-  vtNull  = -43;
+  vtList     = -40;
+  vtMap      = -41;
+  vtEmpty    = -42;
+  vtNull     = -43;
+  vtDateTime = -44;
   
 {$WARN UNSAFE_TYPE OFF}
 {$WARN UNSAFE_CAST OFF}
@@ -426,16 +427,20 @@ type
 
     constructor create(const dbl :double);
 
-    function equals(o :IUnknown) :boolean; override;
-    function hash :longint;               override;
-    function toString :UnicodeString;            override;
+    function equals(o :IUnknown) :boolean;        override;
+    function hash :longint;                       override;
+    function toString :UnicodeString;             override;
     function compareTo(other :IUnknown) :Integer; virtual;
-    function VType: SmallInt;             override;
+    function VType: SmallInt;                     override;
 
     function intValue    :integer;
     function longValue   :longint;
     function doubleValue :double;
     function boolValue :boolean;
+  end;
+
+  TTDateTimeReference = class(TDoubleReference)
+    function VType: SmallInt;             override;
   end;
 
   TBoolReference = class(TAbstractObject, IComparable, IVariant, INumber, IInteger, ILongint, IDouble, IBoolean)
@@ -991,6 +996,7 @@ type
   function iref(int :integer)  :Inumber;     overload;
   function ilong(lng :longint) :INumber;
   function iref(dbl :double)   :INumber;     overload;
+  function idate(dat :TDateTime):INumber;
   function iref(bol :boolean)  :INumber;     overload;
   function iempty: IObject;
 
@@ -1039,6 +1045,11 @@ end;
 function iref(dbl :double) :INumber;
 begin
    result := TDoubleReference.create(dbl)
+end;
+
+function idate(dat :TDateTime) :INumber;
+begin
+   result := TTDateTimeReference.create(dat)
 end;
 
 function iref(bol :boolean)  :INumber;
@@ -1533,6 +1544,13 @@ begin
 end;
 
 function TDoubleReference.VType: SmallInt;
+begin
+  Result := vtExtended;
+end;
+
+{ TTDateTimeReference }
+
+function TTDateTimeReference.VType: SmallInt;
 begin
   Result := vtExtended;
 end;

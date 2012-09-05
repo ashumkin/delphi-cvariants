@@ -15,10 +15,11 @@ uses
 {$WARN UNSAFE_CAST OFF} // Variant to TVarData
 
 const
-  vtList  = Collections.vtList;
-  vtMap   = Collections.vtMap;
-  vtEmpty = Collections.vtEmpty;
-  vtNull  = Collections.vtNull;
+  vtList     = Collections.vtList;
+  vtMap      = Collections.vtMap;
+  vtEmpty    = Collections.vtEmpty;
+  vtNull     = Collections.vtNull;
+  vtDateTime = Collections.vtDateTime; // TODO: support SqlTimSt ?
 
 type
   // CVariant must have the same size as Variant
@@ -65,6 +66,8 @@ type
     procedure Create(Int: Integer); overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
     procedure Create(Dbl: Double);  overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
     procedure Create(Bol: Boolean); overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
+    procedure CreateDT(Dat: TDateTime); overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
+    procedure CreateDT(Year, Month, Day, Hour, Min, Sec, MSec: Word); overload;
     procedure CreateV(const Vrn: Variant); {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
     procedure CreateL; overload;
     procedure CreateL(const AItems: array of const); overload;
@@ -75,6 +78,8 @@ type
     function ToInt: Integer;
     function ToBool: Boolean;
     function ToFloat: Double;
+    function ToDateTime: TDateTime;
+    procedure DecodeDateTime(var Year, Month, Day, Hour, Min, Sec, MSec: Word);
 
     // maps and lists
 
@@ -193,12 +198,17 @@ function CVar(const Str: UnicodeString): CVariant;  overload; {$IFDEF DELPHI_HAS
 function CVar(Int: Integer): CVariant; overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
 function CVar(Dbl: Double): CVariant;  overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
 function CVar(Bol: Boolean): CVariant; overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
+function CDateTime(Dat: TDateTime): CVariant; overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
+function CDateTime(Year, Month, Day, Hour, Min, Sec, MSec: Word): CVariant; overload;
 function CVarV(const Vrn: Variant): CVariant; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
 function CList: CVariant; overload;
 function CList(const AItems: array of const): CVariant; overload;
 function CMap: CVariant; overload;
 function CMap(const AKeyValues: array of const): CVariant; overload;
 function CMap(const AKeys, AValues: array of const): CVariant; overload;
+
+function VDateTime(Dat: TDateTime): Variant; overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
+function VDateTime(Year, Month, Day, Hour, Min, Sec, MSec: Word): Variant; overload;
 
 function VList: Variant; overload;
 function VList(const AItems: array of const): Variant; overload;
@@ -222,7 +232,7 @@ begin
     varSingle: Result := iref(TVarData(Obj).VSingle);
     varDouble: Result := iref(TVarData(Obj).VDouble);
     varCurrency: Result := iref(TVarData(Obj).VCurrency);
-    varDate: Result := iref(TVarData(Obj).VDate);
+    varDate: Result := idate(TVarData(Obj).VDate);
     varOleStr: Result := iref(UnicodeString(WideString(Pointer(TVarData(Obj).VOleStr))));
     varDispatch: Result := IUnknown(TVarData(Obj).VDispatch);
     varError: Result := iref(TVarData(Obj).VError);
@@ -244,7 +254,6 @@ begin
     varArray: // TODO: COM array to Collection sequence
   else
     // TODO: custom Variant
-    // TODO: Delphi XE2 types
     // TODO: pointer to something
   end;
 end;
@@ -262,7 +271,7 @@ begin
     varSingle: Result := vtExtended;
     varDouble: Result := vtExtended;
     varCurrency: Result := vtExtended;
-    varDate: Result := vtExtended;
+    varDate: Result := vtDateTime;
     varOleStr: Result := vtString;
     varDispatch: begin
       Result := vtInterface;
@@ -290,7 +299,6 @@ begin
     varArray: // TODO: COM array to Collection sequence
   else
     // TODO: custom Variant
-    // TODO: Delphi XE2 types
     // TODO: pointer to something
   end;
   if Result = vtInterface then
@@ -440,6 +448,17 @@ begin
   FObj := Bol;
 end;
 
+procedure CVariant.CreateDT(Dat: TDateTime);
+begin
+  FObj := VarFromDateTime(Dat);
+end;
+
+procedure CVariant.CreateDT(Year, Month, Day, Hour, Min, Sec, MSec: Word);
+begin
+  FObj := VarFromDateTime(EncodeDate(Year, Month, Day) +
+    EncodeTime(Hour, Min, Sec, MSec));
+end;
+
 procedure CVariant.CreateV(const Vrn: Variant);
 begin
   FObj := Vrn;
@@ -536,6 +555,16 @@ begin
   Result.FObj := Bol;
 end;
 
+function CDateTime(Dat: TDateTime): CVariant;
+begin
+  Result.FObj := VarFromDateTime(Dat);
+end;
+
+function CDateTime(Year, Month, Day, Hour, Min, Sec, MSec: Word): CVariant;
+begin
+  Result.FObj := VarFromDateTime(EncodeDate(Year, Month, Day) + EncodeTime(Hour, Min, Sec, MSec));
+end;
+
 function CVarV(const Vrn: Variant): CVariant;
 begin
   Result.FObj := Vrn;
@@ -564,6 +593,16 @@ end;
 function CMap(const AKeys, AValues: array of const): CVariant;
 begin
   Result.CreateM(AKeys, AValues);
+end;
+
+function VDateTime(Dat: TDateTime): Variant;
+begin
+  Result := VarFromDateTime(Dat);
+end;
+
+function VDateTime(Year, Month, Day, Hour, Min, Sec, MSec: Word): Variant;
+begin
+  Result := VarFromDateTime(EncodeDate(Year, Month, Day) + EncodeTime(Hour, Min, Sec, MSec));
 end;
 
 function VList: Variant;
@@ -651,6 +690,21 @@ begin
   else
     Result := floatOf(VariantToRef(FObj));
   end;
+end;
+
+function CVariant.ToDateTime: TDateTime;
+begin
+  case TVarData(FObj).VType of
+    varDate: Result := TVarData(FObj).VDate;
+  else
+    Result := floatOf(VariantToRef(FObj));
+  end;
+end;
+
+procedure CVariant.DecodeDateTime(var Year, Month, Day, Hour, Min, Sec, MSec: Word);
+begin
+  DecodeDate(ToDateTime, Year, Month, Day);
+  DecodeTime(ToDateTime, Hour, Min, Sec, MSec);
 end;
 
 procedure CVariant.RaiseNotAnArray;
@@ -1494,6 +1548,7 @@ begin
   vtNull: Result := False; // "undefined" never equals to anything
   vtInteger: Result := Self.ToInt = Right.ToInt;
   vtExtended: Result := Self.ToFloat = Right.ToFloat;
+  vtDateTime: Result := SameValue(Self.ToDateTime, Right.ToDateTime, 0.0005);
   vtBoolean: Result := Self.ToBool = Right.ToBool;
   vtString: Result := Self.ToString = Right.ToString;
   vtList:
@@ -1591,6 +1646,11 @@ begin
       Result.Destroy;
   vtExtended:
     if Self.ToFloat <> OldVersion.ToFloat then
+      Result := Self
+    else
+      Result.Destroy;
+  vtDateTime:
+    if not SameValue(Self.ToDateTime, OldVersion.ToDateTime, 0.001) then
       Result := Self
     else
       Result.Destroy;
@@ -1735,7 +1795,7 @@ var
 begin
   case Patch.VType of
   vtEmpty: ; // do nothing
-  vtInteger, vtString, vtExtended, vtBoolean: Self := Patch;
+  vtInteger, vtString, vtExtended, vtDateTime, vtBoolean: Self := Patch;
   vtList: Self := Patch.Clone;
   vtMap:
     begin

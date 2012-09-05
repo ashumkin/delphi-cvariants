@@ -60,6 +60,11 @@ type
     procedure TestPatch;
   end;
 
+  TDateTimeTests = class(TTestCase)
+  published
+    procedure TestBackAndForth;
+  end;
+
 implementation
 
 
@@ -574,11 +579,32 @@ begin
     ), 'patch test by equals');
 end;
 
+{ TDateTimeTests }
+
+procedure TDateTimeTests.TestBackAndForth;
+var
+  Year, Month, Day, Hour, Min, Sec, MSec: Word;
+  Obj: CVariant;
+begin
+  Obj.CreateDT(2005, 05, 20, 18, 22, 09, 071);
+  Obj.DecodeDateTime(Year, Month, Day, Hour, Min, Sec, MSec);
+  CheckEquals(2005, Year,  'Year');
+  CheckEquals(05,   Month, 'Month');
+  CheckEquals(20,   Day,   'Day');
+  CheckEquals(18,   Hour,  'Hour');
+  CheckEquals(22,   Min,   'Min');
+  CheckEquals(09,   Sec,   'Sec');
+  CheckEquals(071,  MSec,  'MSec');
+  CheckEquals(vtDateTime, Obj.VType, 'VType');
+  Check(Obj.Equals(CDateTime(2005, 05, 20, 18, 22, 09, 071)));
+end;
+
 initialization
   RegisterTests('CVariants',
     [TPrimitiveTests.Suite,
      TListTests.Suite,
      TDeepTests.Suite,
-     TRecursiveTests.Suite
+     TRecursiveTests.Suite,
+     TDateTimeTests.Suite
     ]);
 end.
