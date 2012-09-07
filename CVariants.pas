@@ -18,7 +18,7 @@ const
   vtList     = Collections.vtList;
   vtMap      = Collections.vtMap;
   vtEmpty    = Collections.vtEmpty;
-  vtNull     = Collections.vtNull;
+  vtNull     = Collections.vtNull;     // TODO: rename Null to avoid confusion with JavaScript null
   vtDateTime = Collections.vtDateTime; // TODO: support SqlTimSt ?
 
 type
@@ -219,7 +219,7 @@ function VMap(const AKeys, AValues: array of const): Variant; overload;
 implementation
 
 uses
-  SysUtils, Math;
+  SysUtils, DateUtils, Math;
 
 class function CVariant.VariantToRef(const Obj: Variant): IUnknown;
 begin
@@ -371,7 +371,7 @@ begin
     vtUnicodeString: Result := iref(UnicodeString(Obj.VUnicodeString));
     {$ENDIF}
   else
-    // TODO: Delphi XE2 types
+    // nothing else?
   end;
 end;
 
@@ -455,8 +455,7 @@ end;
 
 procedure CVariant.CreateDT(Year, Month, Day, Hour, Min, Sec, MSec: Word);
 begin
-  FObj := VarFromDateTime(EncodeDate(Year, Month, Day) +
-    EncodeTime(Hour, Min, Sec, MSec));
+  FObj := VarFromDateTime(EncodeDateTime(Year, Month, Day, Hour, Min, Sec, MSec));
 end;
 
 procedure CVariant.CreateV(const Vrn: Variant);
@@ -562,7 +561,7 @@ end;
 
 function CDateTime(Year, Month, Day, Hour, Min, Sec, MSec: Word): CVariant;
 begin
-  Result.FObj := VarFromDateTime(EncodeDate(Year, Month, Day) + EncodeTime(Hour, Min, Sec, MSec));
+  Result.FObj := VarFromDateTime(EncodeDateTime(Year, Month, Day, Hour, Min, Sec, MSec));
 end;
 
 function CVarV(const Vrn: Variant): CVariant;
@@ -602,7 +601,7 @@ end;
 
 function VDateTime(Year, Month, Day, Hour, Min, Sec, MSec: Word): Variant;
 begin
-  Result := VarFromDateTime(EncodeDate(Year, Month, Day) + EncodeTime(Hour, Min, Sec, MSec));
+  Result := VarFromDateTime(EncodeDateTime(Year, Month, Day, Hour, Min, Sec, MSec));
 end;
 
 function VList: Variant;
@@ -703,8 +702,7 @@ end;
 
 procedure CVariant.DecodeDateTime(var Year, Month, Day, Hour, Min, Sec, MSec: Word);
 begin
-  DecodeDate(ToDateTime, Year, Month, Day);
-  DecodeTime(ToDateTime, Hour, Min, Sec, MSec);
+  DateUtils.DecodeDateTime(ToDateTime, Year, Month, Day, Hour, Min, Sec, MSec);
 end;
 
 procedure CVariant.RaiseNotAnArray;
@@ -1548,7 +1546,7 @@ begin
   vtNull: Result := False; // "undefined" never equals to anything
   vtInteger: Result := Self.ToInt = Right.ToInt;
   vtExtended: Result := Self.ToFloat = Right.ToFloat;
-  vtDateTime: Result := SameValue(Self.ToDateTime, Right.ToDateTime, 0.0005);
+  vtDateTime: Result := SameDateTime(Self.ToDateTime, Right.ToDateTime);
   vtBoolean: Result := Self.ToBool = Right.ToBool;
   vtString: Result := Self.ToString = Right.ToString;
   vtList:
@@ -1650,7 +1648,7 @@ begin
     else
       Result.Destroy;
   vtDateTime:
-    if not SameValue(Self.ToDateTime, OldVersion.ToDateTime, 0.001) then
+    if not SameDateTime(Self.ToDateTime, OldVersion.ToDateTime) then
       Result := Self
     else
       Result.Destroy;
