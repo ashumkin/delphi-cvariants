@@ -664,7 +664,7 @@ begin
     varLongWord: Result := TVarData(FObj).VLongWord;
     varInt64: Result := TVarData(FObj).VInt64;
     {$IFDEF DELPHI_HAS_UINT64}
-    varUInt64: TVarData(FObj).VUInt64;
+    varUInt64: Result := TVarData(FObj).VUInt64;
     {$ENDIF}
   else
     Result := intOf(VariantToRef(FObj));
