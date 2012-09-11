@@ -331,6 +331,7 @@ type
 //////////////////////////////////////////////////////////////
 // OBJECTS
 
+  {$WARN HIDDEN_VIRTUAL OFF}
   TAbstractObject = class(TInterfacedObject, IObject, IDelphiObject)
      function equals(o :IUnknown) :boolean; virtual;
      function hash :longint;                virtual;
@@ -341,6 +342,7 @@ type
      function instanceOf(const iid :TGUID) :boolean;   virtual;
      function VType: SmallInt;             virtual; // vt* constants
   end;
+  {$WARN HIDDEN_VIRTUAL DEFAULT}
 
   TReference = class(TAbstractObject, IVariant, IReference, IComparable)
   protected
