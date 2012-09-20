@@ -48,7 +48,8 @@ uses
   GUITestRunner,
   {$ENDIF}
   CVariants.Collections.Tests in 'CVariants.Collections.Tests.pas',
-  CVariants.Tests in 'CVariants.Tests.pas';
+  CVariants.Tests in 'CVariants.Tests.pas',
+  CVariants.Utils.Tests in 'CVariants.Utils.Tests.pas';
 
 {$R *.res}
 
