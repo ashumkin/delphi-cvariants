@@ -1,9 +1,9 @@
 unit
-  CVariantDelphiFeatures;
+  CVariants.DelphiFeatures;
 
 interface
 
-{$INCLUDE 'CVariantDelphiFeatures.inc'}
+{$INCLUDE 'CVariants.DelphiFeatures.inc'}
 
 {$IFNDEF DELPHI_IS_UNICODE}
 type

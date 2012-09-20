@@ -3,9 +3,9 @@ unit CVariants;
 interface
 
 uses
-  Collections, Variants, CVariantDelphiFeatures;
+  CVariants.Collections, Variants, CVariants.DelphiFeatures;
 
-{$INCLUDE 'CVariantDelphiFeatures.inc'}
+{$INCLUDE 'CVariants.DelphiFeatures.inc'}
 
 {$IFNDEF DELPHI_HAS_RECORDS}
 {$WARN UNSAFE_TYPE OFF}
@@ -15,11 +15,11 @@ uses
 {$WARN UNSAFE_CAST OFF} // Variant to TVarData
 
 const
-  vtList     = Collections.vtList;
-  vtMap      = Collections.vtMap;
-  vtEmpty    = Collections.vtEmpty;
-  vtNull     = Collections.vtNull;     // TODO: rename Null to avoid confusion with JavaScript null
-  vtDateTime = Collections.vtDateTime; // TODO: support SqlTimSt ?
+  vtList     = CVariants.Collections.vtList;
+  vtMap      = CVariants.Collections.vtMap;
+  vtEmpty    = CVariants.Collections.vtEmpty;
+  vtNull     = CVariants.Collections.vtNull;     // TODO: rename Null to avoid confusion with JavaScript null
+  vtDateTime = CVariants.Collections.vtDateTime; // TODO: support SqlTimSt ?
 
 type
   // CVariant must have the same size as Variant
@@ -648,7 +648,7 @@ begin
     varUString: Result := UnicodeString(Pointer(TVarData(FObj).VUString));
     {$ENDIF}
   else
-    Result := Collections.stringOf(VariantToRef(FObj));
+    Result := CVariants.Collections.stringOf(VariantToRef(FObj));
   end;
 end;
 
@@ -736,7 +736,7 @@ begin
     if Supports(LIU, IList, LIL) then
     begin
       if Indices[i].VType <> vtInteger then
-        raise EVariantInvalidArgError.Create(Collections.stringOf(LIL));
+        raise EVariantInvalidArgError.Create(CVariants.Collections.stringOf(LIL));
       LIU := LIL.item[Indices[i].VInteger];
     end else if Supports(LIU, IMap, LIM) then
       LIU := LIM.get(ConstToRef(Indices[i]))
@@ -766,7 +766,7 @@ begin
     if Supports(LIU, IList, LIL) then
     begin
       if Indices[i].VType <> vtInteger then
-        raise EVariantInvalidArgError.Create(Collections.stringOf(LIL));
+        raise EVariantInvalidArgError.Create(CVariants.Collections.stringOf(LIL));
       LIU := LIL.item[Indices[i].VInteger];
     end else if Supports(LIU, IMap, LIM) then
       LIU := LIM.get(ConstToRef(Indices[i]))
@@ -796,7 +796,7 @@ begin
     if Supports(LIU, IList, LIL) then
     begin
       if IndicesAndObj[i].VType <> vtInteger then
-        raise EVariantInvalidArgError.Create(Collections.stringOf(LIL));
+        raise EVariantInvalidArgError.Create(CVariants.Collections.stringOf(LIL));
       LIU := LIL.item[IndicesAndObj[i].VInteger];
     end else if Supports(LIU, IMap, LIM) then
       LIU := LIM.get(ConstToRef(IndicesAndObj[i]))
@@ -850,7 +850,7 @@ begin
   if Supports(LIU, IList, LIL) then
   begin
     if Indices[High(Indices)].VType <> vtInteger then
-      raise EVariantInvalidArgError.Create(Collections.stringOf(LIL));
+      raise EVariantInvalidArgError.Create(CVariants.Collections.stringOf(LIL));
     LIL.item[Indices[High(Indices)].VInteger] := VariantToRef(NewObj.FObj);
   end else if Supports(LIU, IMap, LIM) then
     LIM.put(ConstToRef(Indices[High(Indices)]), VariantToRef(NewObj.FObj))
@@ -870,7 +870,7 @@ begin
   if Supports(LIU, IList, LIL) then
   begin
     if IndicesAndObj[High(IndicesAndObj) - 1].VType <> vtInteger then
-      raise EVariantInvalidArgError.Create(Collections.stringOf(LIL));
+      raise EVariantInvalidArgError.Create(CVariants.Collections.stringOf(LIL));
     LIL.item[IndicesAndObj[High(IndicesAndObj) - 1].VInteger] :=
       ConstToRef(IndicesAndObj[High(IndicesAndObj)]);
   end else if Supports(LIU, IMap, LIM) then
@@ -964,7 +964,7 @@ begin
   if Supports(LIU, IList, LIL) then
   begin
     if Indices[High(Indices)].VType <> vtInteger then
-      raise EVariantInvalidArgError.Create(Collections.stringOf(LIL));
+      raise EVariantInvalidArgError.Create(CVariants.Collections.stringOf(LIL));
     LIL.remove(Indices[High(Indices)].VInteger);
   end else if Supports(LIU, IMap, LIM) then
     LIM.remove(ConstToRef(Indices[High(Indices)]))
@@ -984,7 +984,7 @@ begin
   if Supports(LIU, IList, LIL) then
   begin
     if Indices[High(Indices)].VType <> vtInteger then
-      raise EVariantInvalidArgError.Create(Collections.stringOf(LIL));
+      raise EVariantInvalidArgError.Create(CVariants.Collections.stringOf(LIL));
     LIL.insert(Indices[High(Indices)].VInteger, VariantToRef(NewObj.FObj));
   end else if Supports(LIU, IMap, LIM) then
     LIM.put(ConstToRef(Indices[High(Indices)]), VariantToRef(NewObj.FObj))
@@ -1004,7 +1004,7 @@ begin
   if Supports(LIU, IList, LIL) then
   begin
     if IndicesAndObj[High(IndicesAndObj) - 1].VType <> vtInteger then
-      raise EVariantInvalidArgError.Create(Collections.stringOf(LIL));
+      raise EVariantInvalidArgError.Create(CVariants.Collections.stringOf(LIL));
     LIL.insert(IndicesAndObj[High(IndicesAndObj) - 1].VInteger,
       ConstToRef(IndicesAndObj[High(IndicesAndObj)]));
   end else if Supports(LIU, IMap, LIM) then
@@ -1027,7 +1027,7 @@ begin
   if Supports(LIU, IList, LIL) then
   begin
     if Indices[High(Indices)].VType <> vtInteger then
-      raise EVariantInvalidArgError.Create(Collections.stringOf(LIL));
+      raise EVariantInvalidArgError.Create(CVariants.Collections.stringOf(LIL));
     NLI.Create(NewList); i := Indices[High(Indices)].VInteger;
     while NLI.Next do
     begin
@@ -1050,7 +1050,7 @@ begin
   if Supports(LIU, IList, LIL) then
   begin
     if Indices[High(Indices)].VType <> vtInteger then
-      raise EVariantInvalidArgError.Create(Collections.stringOf(LIL));
+      raise EVariantInvalidArgError.Create(CVariants.Collections.stringOf(LIL));
     j := Indices[High(Indices)].VInteger;
     for i := 0 to Length(NewList) - 1 do
       LIL.insert(j + i, ConstToRef(NewList[Low(NewList) + i]));

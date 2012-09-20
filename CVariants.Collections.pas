@@ -27,14 +27,14 @@
  * The DUnit group at SourceForge <http://dunit.sourceforge.net>
  *
  *)
-unit Collections;
+unit CVariants.Collections;
 interface
 uses
   SysUtils,
   Classes,
   Math,
   Variants,
-  CVariantDelphiFeatures;
+  CVariants.DelphiFeatures;
 
 const
   rcs_id :UnicodeString = '@(#)$Id: Collections.pas,v 1.10 2001/10/23 03:55:20 juanco Exp $';
@@ -4319,7 +4319,7 @@ end;
 
 function  THeap.compare(o1, o2 :IUnknown) :integer;
 begin
-   result := Collections.compare(o1, o2);
+   result := CVariants.Collections.compare(o1, o2);
 end;
 
 function THeap.put(i :integer; item :IUnknown):IUnknown;

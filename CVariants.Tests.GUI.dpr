@@ -39,7 +39,7 @@
 
 { Define DUNIT_CLX for project to use D6+ CLX }
 
-program TestDUnitGUI;
+program CVariants.Tests.GUI;
 uses
   SysUtils,
   {$IFDEF DUNIT_CLX}
@@ -47,8 +47,8 @@ uses
   {$ELSE}
   GUITestRunner,
   {$ENDIF}
-  CollectionsTests in 'CollectionsTests.pas',
-  CVariantTests in 'CVariantTests.pas';
+  CVariants.Collections.Tests in 'CVariants.Collections.Tests.pas',
+  CVariants.Tests in 'CVariants.Tests.pas';
 
 {$R *.res}
 

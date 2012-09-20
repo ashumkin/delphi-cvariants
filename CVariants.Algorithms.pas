@@ -27,10 +27,10 @@
  * The DUnit group at SourceForge <http://dunit.sourceforge.net>
  *
  *)
-unit Algorithms;
+unit CVariannts.Algorithms;
 interface
 uses
-   Collections;
+   CVariants.Collections;
 
 const
   rcs_id :string = '@(#)$Id: Algorithms.pas,v 1.2 2000/08/01 17:21:11 juanco Exp $';

@@ -1,7 +1,7 @@
-{ $Id: TestKUnitGUI.dpr,v 1.1 2001/11/08 21:15:19 juanco Exp $ }
+{ $Id: TestDUNIT.dpr,v 1.14 2001/11/30 21:36:38 juanco Exp $ }
 {: DUnit: An XTreme testing framework for Delphi programs.
    @author  The DUnit Group.
-   @version $Revision: 1.1 $
+   @version $Revision: 1.14 $
 }
 (*
  * The contents of this file are subject to the Mozilla Public
@@ -28,17 +28,21 @@
  * Juanco Añez <juanco@users.sourceforge.net>
  * Chris Morris <chrismo@users.sourceforge.net>
  * Jeff Moore <JeffMoore@users.sourceforge.net>
+ * Kris Golko <neuromancer@users.sourceforge.net>
  * The DUnit group at SourceForge <http://dunit.sourceforge.net>
  *
  *)
-program TestKUnitGUI;
+{$APPTYPE CONSOLE}
+program CVariants.Test.Console;
+
 uses
-  SysUtils,
-  KylixGUITestRunner,
-  CollectionsTests in 'CollectionsTests.pas';
+  TestFramework,
+  TextTestRunner,
+  CVariants.Collections.Tests in 'CVariants.Collections.Tests.pas',
+  CVariants.Tests in 'CVariants.Tests.pas';
 
-
+{$R *.res}
 
 begin
-  KylixGUITestRunner.RunRegisteredTests;
+  TextTestRunner.runRegisteredTests;
 end.

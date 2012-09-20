@@ -31,12 +31,12 @@
  * The DUnit group at SourceForge <http://dunit.sourceforge.net>
  *
  *)
-unit CollectionsTests;
+unit CVariants.Collections.Tests;
 interface
 uses
    SysUtils,
    TestFramework,
-   Collections;
+   CVariants.Collections;
 
 type
   TListTests = class(TTestCase)
@@ -246,18 +246,18 @@ begin
   o2 := TObject.create;
   map.put(iref(o1), iref(o2));
   x := map.get(iref(o1));
-  check(Collections.equal(x, iref(o2)));
+  check(CVariants.Collections.equal(x, iref(o2)));
   checkNull(map.get(iref(o2)));
 
   map.put(iref(o2), self);
-  check(Collections.equal(self, map.get(iref(o2))));
+  check(CVariants.Collections.equal(self, map.get(iref(o2))));
   map.remove(iref(o2));
   map.remove(iref(o1));
   checkEquals(0, map.size);
 
   map.put(iref(101), x);
-  check(Collections.equal(map.get(iref(101)), x));
-  check(not Collections.equal(map.get(iref(101)), a));
+  check(CVariants.Collections.equal(map.get(iref(101)), x));
+  check(not CVariants.Collections.equal(map.get(iref(101)), a));
 end;
 
 procedure TMapTests.testHashMap;
@@ -275,9 +275,9 @@ begin
 
   i := s.keys;
   o := i.next;
-  check(Collections.equal(iref('a'), o),                'check key');
-  check(Collections.equal(iref('a'), s.get(o)),         'check value');
-  check(Collections.equal(iref('a'), s.get(iref('a'))), 'check value 2');
+  check(CVariants.Collections.equal(iref('a'), o),                'check key');
+  check(CVariants.Collections.equal(iref('a'), s.get(o)),         'check value');
+  check(CVariants.Collections.equal(iref('a'), s.get(iref('a'))), 'check value 2');
 end;
 
 procedure TMapTests.testSortedMapValues;
@@ -287,11 +287,11 @@ var
 begin
   s := buildTreeMap;
   i := s.values.iterator;
-  check(Collections.equal(iref('a'), i.next),         'a');
-  check(Collections.equal(iref('c'), i.next),         'c');
-  check(Collections.equal(iref('m'), i.next),         'm');
-  check(Collections.equal(iref('x'), i.next),         'x');
-  check(Collections.equal(iref('z'), i.next),         'z');
+  check(CVariants.Collections.equal(iref('a'), i.next),         'a');
+  check(CVariants.Collections.equal(iref('c'), i.next),         'c');
+  check(CVariants.Collections.equal(iref('m'), i.next),         'm');
+  check(CVariants.Collections.equal(iref('x'), i.next),         'x');
+  check(CVariants.Collections.equal(iref('z'), i.next),         'z');
   check(not i.hasNext,                   'eol');
 end;
 
@@ -375,15 +375,15 @@ var
 begin
   s := buildTreeSet;
 
-  check(Collections.equal(iref('a'), s.first), 'check first');
-  check(Collections.equal(iref('z'), s.last), 'check last');
+  check(CVariants.Collections.equal(iref('a'), s.first), 'check first');
+  check(CVariants.Collections.equal(iref('z'), s.last), 'check last');
 
   i := s.iterator;
-  check(Collections.equal(iref('a'), i.next), 'check a');
-  check(Collections.equal(iref('c'), i.next), 'check c');
-  check(Collections.equal(iref('m'), i.next), 'check m');
-  check(Collections.equal(iref('x'), i.next), 'check x');
-  check(Collections.equal(iref('z'), i.next), 'check z');
+  check(CVariants.Collections.equal(iref('a'), i.next), 'check a');
+  check(CVariants.Collections.equal(iref('c'), i.next), 'check c');
+  check(CVariants.Collections.equal(iref('m'), i.next), 'check m');
+  check(CVariants.Collections.equal(iref('x'), i.next), 'check x');
+  check(CVariants.Collections.equal(iref('z'), i.next), 'check z');
   check(not i.hasNext, 'eos');
 end;
 
@@ -394,11 +394,11 @@ var
 begin
   s := buildTreeSet;
   i := s.iterator;
-  check(Collections.equal(iref('a'), i.next),         'a');
-  check(Collections.equal(iref('c'), i.next),         'c');
-  check(Collections.equal(iref('m'), i.next),         'm');
-  check(Collections.equal(iref('x'), i.next),         'x');
-  check(Collections.equal(iref('z'), i.next),         'z');
+  check(CVariants.Collections.equal(iref('a'), i.next),         'a');
+  check(CVariants.Collections.equal(iref('c'), i.next),         'c');
+  check(CVariants.Collections.equal(iref('m'), i.next),         'm');
+  check(CVariants.Collections.equal(iref('x'), i.next),         'x');
+  check(CVariants.Collections.equal(iref('z'), i.next),         'z');
   check(not i.hasNext,                   'eol');
 end;
 
@@ -460,7 +460,7 @@ begin
 end;
 
 initialization
-  RegisterTests('dUnit-collections',
+  RegisterTests('dUnit-Collections',
     [TListTests.Suite,
      TMapTests.Suite,
      TSetTests.Suite,

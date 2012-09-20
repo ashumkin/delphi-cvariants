@@ -1,4 +1,4 @@
-unit CVariantTests;
+unit CVariants.Tests;
 
 interface
 uses
@@ -7,7 +7,7 @@ uses
    CVariants,
    Variants;
 
-{$INCLUDE 'CVariantDelphiFeatures.inc'}
+{$INCLUDE 'CVariants.DelphiFeatures.inc'}
 
 {$IFNDEF DELPHI_HAS_RECORDS}
 {$WARN UNSAFE_TYPE OFF}
