@@ -94,7 +94,7 @@
 			<BorlandProject>
 				<Delphi.Personality>
 					<Source>
-						<Source Name="MainSource">TestDUnitGUI.dpr</Source>
+						<Source Name="MainSource">CVariants.Tests.GUI.dpr</Source>
 					</Source>
 					<VersionInfo>
 						<VersionInfo Name="IncludeVerInfo">False</VersionInfo>
