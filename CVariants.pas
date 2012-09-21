@@ -483,7 +483,7 @@ end;
 
 procedure CVariant.CreateM;
 begin
-  CreateI(THashMap.create);
+  CreateI(TTreeMap.create);
 end;
 
 procedure CVariant.CreateM(const AKeyValues: array of const);
@@ -491,7 +491,7 @@ var
   LIM: IMap;
   i: Integer;
 begin
-  LIM := THashMap.create;
+  LIM := TTreeMap.create;
   CreateI(LIM);
   for i := 0 to Length(AKeyValues) div 2 - 1 do
   begin
@@ -505,7 +505,7 @@ var
   LIM: IMap;
   i: Integer;
 begin
-  LIM := THashMap.create;
+  LIM := TTreeMap.create;
   CreateI(LIM);
   for i := 0 to Min(Length(AKeys), Length(AValues)) - 1 do
   begin
