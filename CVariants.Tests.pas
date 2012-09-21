@@ -44,7 +44,7 @@ type
     procedure SetUp; override;
   published
     procedure TestItemAccess;
-    procedure TestNullValues;
+    procedure TestUndefinedValues;
     procedure TestListIterator;
     procedure TestMapIterator;
   end;
@@ -253,12 +253,12 @@ begin
   CheckEquals(4, Count, 'F[''SubMap''].Size');
 end;
 
-procedure TDeepTests.TestNullValues;
+procedure TDeepTests.TestUndefinedValues;
 begin
-  CheckEquals(vtNull, F.VTypeDeep(['Something', 324]), 'F[''Something'', 324]');
+  CheckEquals(vtUndefined, F.VTypeDeep(['Something', 324]), 'F[''Something'', 324]');
   CheckFalse(F.Has(['List', 45]), 'F[''List'', 45]');
   CheckTrue(F.Has(['SubMap', 'ui']), 'F[''SubMap'', ''ui'']');
-  CheckEquals(vtNull, F.VTypeDeep(['SubMap', 'ui', True]), 'F[''SubMap'', ''ui'', True]');
+  CheckEquals(vtUndefined, F.VTypeDeep(['SubMap', 'ui', True]), 'F[''SubMap'', ''ui'', True]');
 end;
 
 { TRecursiveTests }

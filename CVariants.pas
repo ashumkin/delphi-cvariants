@@ -15,11 +15,11 @@ uses
 {$WARN UNSAFE_CAST OFF} // Variant to TVarData
 
 const
-  vtList     = CVariants.Collections.vtList;
-  vtMap      = CVariants.Collections.vtMap;
-  vtEmpty    = CVariants.Collections.vtEmpty;
-  vtNull     = CVariants.Collections.vtNull;     // TODO: rename Null to avoid confusion with JavaScript null
-  vtDateTime = CVariants.Collections.vtDateTime; // TODO: support SqlTimSt ?
+  vtList      = CVariants.Collections.vtList;
+  vtMap       = CVariants.Collections.vtMap;
+  vtEmpty     = CVariants.Collections.vtEmpty;
+  vtUndefined = CVariants.Collections.vtUndefined;
+  vtDateTime  = CVariants.Collections.vtDateTime;  // TODO: support SqlTimSt ?
 
 type
   // CVariant must have the same size as Variant
@@ -29,11 +29,11 @@ type
   private
     FObj: Variant;
 
-    constructor CreateI(const Int: IUnknown; NilToNull: Boolean = True);
+    constructor CreateI(const Int: IUnknown; NilToUndefined: Boolean = True);
     class function VariantToRef(const Obj: Variant): IUnknown; {$IFDEF DELPHI_HAS_RECORDS} static; {$ENDIF}
     class function ConstToRef(const Obj: TVarRec): IUnknown; {$IFDEF DELPHI_HAS_RECORDS} static; {$ENDIF}
     class function GetTVarRecType(const Obj: Variant): SmallInt; {$IFDEF DELPHI_HAS_RECORDS} static; {$ENDIF}
-    // class function MakeI(const Int: IUnknown; NilToNull: Boolean = True): CVariant; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
+    // class function MakeI(const Int: IUnknown; NilToUndefined: Boolean = True): CVariant; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
     function GetAsPVariant: PVariant; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
     function GetHash: Integer;
 
@@ -59,8 +59,6 @@ type
     property Drift: Integer read GetDrift write SetDrift;
   public
     procedure Destroy; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
-    procedure CreateNull; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
-    procedure CreateOwned(Obj: TObject); {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
     procedure Create(Obj: TObject); overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
     procedure Create(const Str: UnicodeString);  overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
     procedure Create(Int: Integer); overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
@@ -74,6 +72,8 @@ type
     procedure CreateM; overload;
     procedure CreateM(const AKeyValues: array of const); overload;
     procedure CreateM(const AKeys, AValues: array of const); overload;
+    procedure CreateUndefined; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
+    procedure CreateOwned(Obj: TObject); {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
     function ToString: UnicodeString;
     function ToInt: Integer;
     function ToBool: Boolean;
@@ -192,7 +192,7 @@ type
 
 function CVarOwned(Obj: TObject): CVariant; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
 function CVarEmpty: CVariant; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
-function CVarNull: CVariant; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
+function CVarUndefined: CVariant; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
 function CVar(Obj: TObject): CVariant; overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
 function CVar(const Str: UnicodeString): CVariant;  overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
 function CVar(Int: Integer): CVariant; overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
@@ -265,7 +265,7 @@ begin
   Result := vtVariant;
   case TVarData(Obj).VType of
     varEmpty: Result := vtEmpty;
-    varNull: Result := vtNull;
+    varNull: Result := vtUndefined;
     varSmallint: Result := vtInteger;
     varInteger: Result := vtInteger;
     varSingle: Result := vtExtended;
@@ -335,11 +335,11 @@ begin
       Result := LIO.VType;
   except
     on EVariantNotAnArrayError do
-      Result := vtNull;
+      Result := vtUndefined;
     on EVariantInvalidArgError do
-      Result := vtNull;
+      Result := vtUndefined;
     on EVariantBadIndexError do
-      Result := vtNull;
+      Result := vtUndefined;
   end;
 end;
 
@@ -375,14 +375,14 @@ begin
   end;
 end;
 
-constructor CVariant.CreateI(const Int: IUnknown; NilToNull: Boolean = True);
+constructor CVariant.CreateI(const Int: IUnknown; NilToUndefined: Boolean = True);
 var
   IntObj: IObject;
 begin
   if not Assigned(Int) then
   begin
-    if NilToNull then
-      CreateNull
+    if NilToUndefined then
+      CreateUndefined
     else
       Destroy;
   end else
@@ -403,9 +403,9 @@ begin
   end;
 end;
 
-// class function CVariant.MakeI(const Int: IUnknown; NilToNull: Boolean = True): CVariant;
+// class function CVariant.MakeI(const Int: IUnknown; NilToUndefined: Boolean = True): CVariant;
 // begin
-//   Result.CreateI(Int, NilToNull);
+//   Result.CreateI(Int, NilToUndefined);
 // end;
 
 procedure CVariant.Destroy;
@@ -413,7 +413,7 @@ begin
   FObj := Unassigned;
 end;
 
-procedure CVariant.CreateNull;
+procedure CVariant.CreateUndefined;
 begin
   FObj := Null;
 end;
@@ -524,7 +524,7 @@ begin
   Result.FObj := Unassigned;
 end;
 
-function CVarNull: CVariant;
+function CVarUndefined: CVariant;
 begin
   Result.FObj := Null;
 end;
@@ -814,11 +814,11 @@ begin
     Result.CreateI(GetDeepItem(Indices), False);
   except
     on EVariantNotAnArrayError do
-      Result.CreateNull;
+      Result.CreateUndefined;
     on EVariantInvalidArgError do
-      Result.CreateNull;
+      Result.CreateUndefined;
     on EVariantBadIndexError do
-      Result.CreateNull;
+      Result.CreateUndefined;
   end;
 end;
 
@@ -1193,11 +1193,11 @@ begin
     Result.CreateI(LIU, False);
   except
     on EVariantNotAnArrayError do
-      Result.CreateNull;
+      Result.CreateUndefined;
     on EVariantInvalidArgError do
-      Result.CreateNull;
+      Result.CreateUndefined;
     on EVariantBadIndexError do
-      Result.CreateNull;
+      Result.CreateUndefined;
   end;
 end;
 
@@ -1543,7 +1543,7 @@ begin
   if SelfVType <> RightVType then Exit;
   case SelfVType of
   vtEmpty: Result := True;
-  vtNull: Result := False; // "undefined" never equals to anything
+  vtUndefined: Result := False; // "undefined" never equals to anything
   vtInteger: Result := Self.ToInt = Right.ToInt;
   vtExtended: Result := Self.ToFloat = Right.ToFloat;
   vtDateTime: Result := SameDateTime(Self.ToDateTime, Right.ToDateTime);
@@ -1583,7 +1583,7 @@ begin
     begin
       Item := Get([OI.Key]);
       case Item.VType of
-      vtNull: Put([OI.Key], OI.Value);
+      vtUndefined: Put([OI.Key], OI.Value);
       vtMap:
         if OI.Value.VType = vtMap then
           Item.Overlay(OI.Value)

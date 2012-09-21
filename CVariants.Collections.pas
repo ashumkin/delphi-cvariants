@@ -39,11 +39,11 @@ uses
 const
   rcs_id :UnicodeString = '@(#)$Id: Collections.pas,v 1.10 2001/10/23 03:55:20 juanco Exp $';
 
-  vtList     = -40;
-  vtMap      = -41;
-  vtEmpty    = -42;
-  vtNull     = -43;
-  vtDateTime = -44;
+  vtList      = -40;
+  vtMap       = -41;
+  vtEmpty     = -42; // the default uninitialized value, Variants.Unassigned, null in JavaScript
+  vtUndefined = -43; // SQL NULL, Variants.Null, undefined in JavaScript
+  vtDateTime  = -44;
   
 {$WARN UNSAFE_TYPE OFF}
 {$WARN UNSAFE_CAST OFF}
