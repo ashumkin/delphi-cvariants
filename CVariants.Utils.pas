@@ -6,7 +6,8 @@ uses
   CVariants,
   Variants,
   Classes,
-  WideStrings;
+  WideStrings,
+  IniFiles;
 
 {$INCLUDE 'CVariants.DelphiFeatures.inc'}
 
@@ -27,6 +28,9 @@ procedure CListToWideStrings(const AList: CVariant; AOutput: TWideStrings);
 
 function CMapFromWideStrings(AMap: TWideStrings): CVariant;
 procedure CMapToWideStrings(const AMap: CVariant; AOutput: TWideStrings);
+
+function CMapFromIniSection(AIniFile: TCustomIniFile; const ASection: string): CVariant;
+function CMapFromIniFile(AIniFile: TCustomIniFile): CVariant;
 
 implementation
 
@@ -134,6 +138,50 @@ begin
 
   while MI.Next do
     AOutput.Add(MI.Key + AOutput.NameValueSeparator + MI.Value.ToString);
+end;
+
+function CMapFromIniSection(AIniFile: TCustomIniFile; const ASection: string): CVariant;
+var
+  IdentList: TStringList;
+  i, L: Integer;
+  CurrentIdent: string;
+begin
+  Result.CreateM;
+  if not Assigned(AIniFile) then Exit;
+  IdentList := TStringList.Create;
+  try
+    AIniFile.ReadSection(ASection, IdentList);
+    L := IdentList.Count;
+    for i := 0 to L - 1 do
+    begin
+      CurrentIdent := IdentList.Strings[i];
+      Result.Put([CurrentIdent], CVar(AIniFile.ReadString(ASection, CurrentIdent, '')));
+    end;
+  finally
+    FreeAndNil(IdentList);
+  end;
+end;
+
+function CMapFromIniFile(AIniFile: TCustomIniFile): CVariant;
+var
+  SectionList: TStringList;
+  i, L: Integer;
+  CurrentSection: string;
+begin
+  Result.CreateM;
+  if not Assigned(AIniFile) then Exit;
+  SectionList := TStringList.Create;
+  try
+    AIniFile.ReadSections(SectionList);
+    L := SectionList.Count;
+    for i := 0 to L - 1 do
+    begin
+      CurrentSection := SectionList.Strings[i];
+      Result.Put([CurrentSection], CMapFromIniSection(AIniFile, CurrentSection));
+    end;
+  finally
+    FreeAndNil(SectionList);
+  end;
 end;
 
 end.
