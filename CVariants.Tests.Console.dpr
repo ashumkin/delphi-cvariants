@@ -33,7 +33,7 @@
  *
  *)
 {$APPTYPE CONSOLE}
-program CVariants.Test.Console;
+program CVariants.Tests.Console;
 
 uses
   TestFramework,
