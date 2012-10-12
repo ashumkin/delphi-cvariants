@@ -22,6 +22,8 @@ const
   vtDateTime  = CVariants.Collections.vtDateTime;  // TODO: support SqlTimSt ?
 
 type
+  ICVariantReference = interface; // A reference to CVariant
+
   // CVariant must have the same size as Variant
   // There must be Variant inside and nothing else
   // CVariant stands for collection-variant
@@ -60,7 +62,7 @@ type
   public
     procedure Destroy; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
     procedure Create(Obj: TObject); overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
-    procedure Create(const Str: UnicodeString);  overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
+    procedure Create(const Str: UnicodeString); overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
     procedure Create(Int: Integer); overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
     procedure Create(Dbl: Double);  overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
     procedure Create(Bol: Boolean); overload; {$IFDEF DELPHI_HAS_INLINE} inline; {$ENDIF}
@@ -156,6 +158,90 @@ type
     property AsVariant: Variant read FObj write FObj;
     property Items[const Ind: Variant]: CVariant read GetItems write SetItems; // TODO: Delphi 2006 - default?
     property AsPVariant: PVariant read GetAsPVariant;
+    property Hash: Integer read GetHash;
+    property IsEmpty: Boolean read GetIsEmpty;
+    property IsFull: Boolean read GetIsFull;
+    property Size: Integer read GetSize;
+    property VType: SmallInt read GetVType;
+  end;
+
+  ICVariantReference = interface
+  ['{70CFA8E6-FB0C-48E4-86A1-16C6C9205403}']
+    procedure DestroyToEmpty;
+    procedure Create(Obj: TObject); overload;
+    procedure Create(const Str: UnicodeString); overload;
+    procedure Create(Int: Integer); overload;
+    procedure Create(Dbl: Double);  overload;
+    procedure Create(Bol: Boolean); overload;
+    procedure CreateDT(Dat: TDateTime); overload;
+    procedure CreateDT(Year, Month, Day, Hour, Min, Sec, MSec: Word); overload;
+    procedure CreateV(const Vrn: Variant);
+    procedure CreateL; overload;
+    procedure CreateL(const AItems: array of const); overload;
+    procedure CreateM; overload;
+    procedure CreateM(const AKeyValues: array of const); overload;
+    procedure CreateM(const AKeys, AValues: array of const); overload;
+    procedure CreateUndefined;
+    procedure CreateOwned(Obj: TObject);
+    function ToString: UnicodeString;
+    function ToInt: Integer;
+    function ToBool: Boolean;
+    function ToFloat: Double;
+    function ToDateTime: TDateTime;
+    procedure DecodeDateTime(var Year, Month, Day, Hour, Min, Sec, MSec: Word);
+    function GetAsVariant: Variant;
+    procedure SetAsVariant(const NewValue: Variant);
+    function GetHash: Integer;
+    function GetVType: SmallInt;
+
+    // maps and lists
+
+    function GetItems(const Ind: Variant): CVariant;
+    procedure SetItems(const Ind: Variant; const NewObj: CVariant);
+    function Get(const Indices: array of const): CVariant; // I failed to make a property out of them
+    function Has(const Indices: array of const): Boolean;
+    procedure Put(const Indices: array of const; const NewObj: CVariant); overload;
+    procedure Put(const IndicesAndObj: array of const); overload;
+    procedure Remove(const Indices: array of const);
+    procedure Insert(const Indices: array of const; const NewObj: CVariant); overload;
+    procedure Insert(const IndicesAndObj: array of const); overload;
+    procedure InsertList(const Indices: array of const; const NewList: CVariant); overload;
+    procedure InsertList(const Indices: array of const; const NewList: array of const); overload;
+    procedure Append(const Indices: array of const; const NewObj: CVariant); overload;
+    procedure Append(const IndicesAndObj: array of const); overload;
+    procedure Append(const NewObj: CVariant); overload;
+    procedure AppendList(const Indices: array of const; const NewList: CVariant); overload;
+    procedure AppendList(const Indices, NewList: array of const); overload;
+    procedure AppendList(const NewList: CVariant); overload;
+    procedure AppendList(const NewList: array of const); overload;
+    procedure MergeMap(const Indices: array of const; const NewMap: CVariant); overload;
+    procedure MergeMap(const Indices: array of const; const AKeyValues: array of const); overload;
+    procedure MergeMap(const NewMap: CVariant); overload;
+    procedure MergeMap(const AKeyValues: array of const); overload;
+
+    procedure Clear(const Indices: array of const); overload; // makes collection empty without destroying
+    procedure Clear; overload; // makes collection empty without destroying
+    function IsEmptyDeep(const Indices: array of const): Boolean;
+    function IsFullDeep(const Indices: array of const): Boolean;
+    function SizeDeep(const Indices: array of const): Integer;
+    function VTypeDeep(const Indices: array of const): SmallInt;
+
+    function HasKey(const Key: UnicodeString): Boolean;
+
+    function GetIsEmpty: Boolean;
+    function GetIsFull: Boolean;
+    function GetSize: Integer;
+
+    // recursive
+    function Clone: CVariant;
+    function Equals(const Right: CVariant): Boolean;
+    procedure Overlay(const OverlayObj: CVariant);
+    function DiffFromOld(const OldVersion: CVariant): CVariant;
+    procedure ApplyPatch(const Patch: CVariant);
+
+
+    property AsVariant: Variant read GetAsVariant write SetAsVariant;
+    property Items[const Ind: Variant]: CVariant read GetItems write SetItems; // TODO: Delphi 2006 - default?
     property Hash: Integer read GetHash;
     property IsEmpty: Boolean read GetIsEmpty;
     property IsFull: Boolean read GetIsFull;
