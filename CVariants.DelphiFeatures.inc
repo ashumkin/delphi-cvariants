@@ -2,6 +2,10 @@
   {$DEFINE DELPHI_HAS_UINT64}
 {$IFEND}
 
+{$IF CompilerVersion >= 20.0}
+  {$DEFINE DELPHI_HAS_UINT64_VARIANT}
+{$IFEND}
+
 {$IF CompilerVersion >= 17.0}
   {$DEFINE DELPHI_HAS_INLINE}
 {$IFEND}

@@ -793,8 +793,8 @@ type
   TTreeEntry = class(TMapEntry, ITreeEntry, IComparable)
   protected
     _left,
-    _right,
-    _parent :ITreeEntry;
+    _right :ITreeEntry;
+    _parent :Pointer;
     _color  :boolean;
   public
     constructor create(key, value :IUnknown; parent :ITreeEntry);
@@ -3941,7 +3941,7 @@ end;
 constructor TTreeEntry.create(key, value: IUnknown; parent: ITreeEntry);
 begin
   inherited create(key, value);
-  self._parent := parent;
+  self._parent := Pointer(parent);
 end;
 
 function TTreeEntry.getColor: boolean;
@@ -3956,7 +3956,7 @@ end;
 
 function TTreeEntry.getParent: ITreeEntry;
 begin
-  result := _parent
+  result := ITreeEntry(_parent);
 end;
 
 function TTreeEntry.getRight: ITreeEntry;
@@ -3991,7 +3991,7 @@ end;
 
 procedure TTreeEntry.setParent(t: ITreeEntry);
 begin
-  self._parent := t
+  self._parent := Pointer(t)
 end;
 
 procedure TTreeEntry.setRed;

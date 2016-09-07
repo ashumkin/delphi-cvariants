@@ -244,7 +244,7 @@ begin
     varWord: Result := iref(TVarData(Obj).VWord);
     varLongWord: Result := iref(TVarData(Obj).VLongWord);
     varInt64: Result := iref(TVarData(Obj).VInt64);
-    {$IFDEF DELPHI_HAS_UINT64}
+    {$IFDEF DELPHI_HAS_UINT64_VARIANT}
     varUInt64: Result := iref(TVarData(Obj).VUInt64);
     {$ENDIF}
     varString: Result := iref(UnicodeString(AnsiString(Pointer(TVarData(Obj).VString))));
@@ -289,7 +289,7 @@ begin
     varWord: Result := vtInteger;
     varLongWord: Result := vtInteger;
     varInt64: Result := vtInt64;
-    {$IFDEF DELPHI_HAS_UINT64}
+    {$IFDEF DELPHI_HAS_UINT64_VARIANT}
     varUInt64: Result := vtInt64;
     {$ENDIF}
     varString: Result := vtString;
@@ -663,7 +663,7 @@ begin
     varWord: Result := TVarData(FObj).VWord;
     varLongWord: Result := TVarData(FObj).VLongWord;
     varInt64: Result := TVarData(FObj).VInt64;
-    {$IFDEF DELPHI_HAS_UINT64}
+    {$IFDEF DELPHI_HAS_UINT64_VARIANT}
     varUInt64: Result := TVarData(FObj).VUInt64;
     {$ENDIF}
   else
