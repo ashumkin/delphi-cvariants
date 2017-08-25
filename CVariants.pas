@@ -29,7 +29,7 @@ type
   private
     FObj: Variant;
 
-    constructor CreateI(const Int: IUnknown; NilToNull: Boolean = True);
+    procedure CreateI(const Int: IUnknown; NilToNull: Boolean = True);
     class function VariantToRef(const Obj: Variant): IUnknown; {$IFDEF DELPHI_HAS_RECORDS} static; {$ENDIF}
     class function ConstToRef(const Obj: TVarRec): IUnknown; {$IFDEF DELPHI_HAS_RECORDS} static; {$ENDIF}
     class function GetTVarRecType(const Obj: Variant): SmallInt; {$IFDEF DELPHI_HAS_RECORDS} static; {$ENDIF}
@@ -375,7 +375,7 @@ begin
   end;
 end;
 
-constructor CVariant.CreateI(const Int: IUnknown; NilToNull: Boolean = True);
+procedure CVariant.CreateI(const Int: IUnknown; NilToNull: Boolean = True);
 var
   IntObj: IObject;
 begin
