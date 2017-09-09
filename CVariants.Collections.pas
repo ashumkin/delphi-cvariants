@@ -1506,8 +1506,11 @@ begin
 end;
 
 function TDoubleReference.toString: UnicodeString;
+var
+  fs: TFormatSettings;
 begin
-   result := FloatToStr(doubleValue)
+  fs.DecimalSeparator := '.';
+  result := FloatToStr(doubleValue, fs);
 end;
 
 function TDoubleReference.intValue: integer;
